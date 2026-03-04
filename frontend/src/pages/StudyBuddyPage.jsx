@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 
@@ -26,6 +26,22 @@ function TrashIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-3.5 h-3.5">
       <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+    </svg>
+  )
+}
+
+function SparklesIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path fillRule="evenodd" d="M9 4.5a.75.75 0 0 1 .721.544l.813 2.846a3.75 3.75 0 0 0 2.576 2.576l2.846.813a.75.75 0 0 1 0 1.442l-2.846.813a3.75 3.75 0 0 0-2.576 2.576l-.813 2.846a.75.75 0 0 1-1.442 0l-.813-2.846a3.75 3.75 0 0 0-2.576-2.576l-2.846-.813a.75.75 0 0 1 0-1.442l2.846-.813A3.75 3.75 0 0 0 7.466 7.89l.813-2.846A.75.75 0 0 1 9 4.5ZM18 1.5a.75.75 0 0 1 .728.568l.258 1.036c.236.94.97 1.674 1.91 1.91l1.036.258a.75.75 0 0 1 0 1.456l-1.036.258c-.94.236-1.674.97-1.91 1.91l-.258 1.036a.75.75 0 0 1-1.456 0l-.258-1.036a2.625 2.625 0 0 0-1.91-1.91l-1.036-.258a.75.75 0 0 1 0-1.456l1.036-.258a2.625 2.625 0 0 0 1.91-1.91l.258-1.036A.75.75 0 0 1 18 1.5ZM16.5 15a.75.75 0 0 1 .712.513l.394 1.183c.15.447.5.799.948.948l1.183.395a.75.75 0 0 1 0 1.422l-1.183.395c-.447.15-.799.5-.948.948l-.395 1.183a.75.75 0 0 1-1.422 0l-.395-1.183a1.5 1.5 0 0 0-.948-.948l-1.183-.395a.75.75 0 0 1 0-1.422l1.183-.395c.447-.15.799-.5.948-.948l.395-1.183A.75.75 0 0 1 16.5 15Z" clipRule="evenodd" />
+    </svg>
+  )
+}
+
+function DocumentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4 flex-shrink-0">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
     </svg>
   )
 }
@@ -66,11 +82,61 @@ function Message({ msg }) {
   )
 }
 
+// ---- Flip Card ----
+function FlipCard({ card, isFlipped, onFlip }) {
+  return (
+    <div
+      className="cursor-pointer select-none"
+      style={{ perspective: '1000px', height: '200px' }}
+      onClick={onFlip}
+    >
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          transition: 'transform 0.45s',
+          transformStyle: 'preserve-3d',
+          WebkitTransformStyle: 'preserve-3d',
+          transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+        }}
+      >
+        {/* Front — Question */}
+        <div
+          className="absolute inset-0 bg-white rounded-xl border-2 border-purple-100 p-4 flex flex-col items-center justify-center shadow-sm hover:shadow-md hover:border-purple-300 transition-shadow overflow-y-auto"
+          style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+        >
+          <span className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-3">Question</span>
+          <p className="text-sm text-gray-800 text-center font-medium leading-relaxed">{card.question}</p>
+          <span className="text-xs text-gray-300 mt-4">tap to reveal</span>
+        </div>
+        {/* Back — Answer */}
+        <div
+          className="absolute inset-0 bg-purple-700 rounded-xl p-4 flex flex-col items-center justify-center shadow-md overflow-y-auto"
+          style={{
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+            transform: 'rotateY(180deg)',
+          }}
+        >
+          <span className="text-xs text-purple-200 font-semibold uppercase tracking-wider mb-3">Answer</span>
+          <p className="text-sm text-white text-center leading-relaxed">{card.answer}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ---- Main page ----
 export default function StudyBuddyPage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  const routeState = location.state || {}
   const [course, setCourse] = useState(null)
+  const [activeTab, setActiveTab] = useState(routeState.tab === 'flashcards' ? 'flashcards' : 'chat')
+
+  // Chat state
   const [conversations, setConversations] = useState([])
   const [activeConvId, setActiveConvId] = useState(null)
   const [messages, setMessages] = useState([WELCOME])
@@ -79,7 +145,14 @@ export default function StudyBuddyPage() {
   const bottomRef = useRef(null)
   const activeConvIdRef = useRef(null)
 
-  // Keep ref in sync for use inside async callbacks
+  // Flashcard state
+  const [lectureFiles, setLectureFiles] = useState([])
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [flashcards, setFlashcards] = useState([])
+  const [generatedFor, setGeneratedFor] = useState(null)
+  const [flippedCards, setFlippedCards] = useState(new Set())
+  const [flashcardError, setFlashcardError] = useState(null)
+
   useEffect(() => { activeConvIdRef.current = activeConvId }, [activeConvId])
 
   useEffect(() => {
@@ -89,12 +162,19 @@ export default function StudyBuddyPage() {
     axios.get(`/api/courses/${courseId}/conversations`).then(res => {
       setConversations(res.data)
     })
+    axios.get(`/api/courses/${courseId}/files/lectures`).then(res => {
+      setLectureFiles(res.data)
+      if (routeState.file && routeState.tab === 'flashcards') {
+        generateFlashcards(routeState.file)
+      }
+    })
   }, [courseId])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // ---- Chat functions ----
   function startNewChat() {
     setActiveConvId(null)
     setMessages([WELCOME])
@@ -165,11 +245,9 @@ export default function StudyBuddyPage() {
         }
       }
 
-      // Finalize message display
       const finalMessages = [...updatedMessages, { role: 'assistant', content: accumulated }]
       setMessages([WELCOME, ...finalMessages.slice(1)])
 
-      // Persist to server (strip WELCOME from saved messages)
       const toSave = finalMessages.filter(m => m !== WELCOME)
       const { data: saved } = await axios.post(`/api/courses/${courseId}/conversations`, {
         id: convId,
@@ -177,7 +255,6 @@ export default function StudyBuddyPage() {
         messages: toSave,
       })
 
-      // Update sidebar list
       setConversations(prev => {
         const exists = prev.find(c => c.id === convId)
         if (exists) return prev.map(c => c.id === convId ? { ...c, title: saved.title } : c)
@@ -214,17 +291,42 @@ export default function StudyBuddyPage() {
     return d.toLocaleDateString([], { month: 'short', day: 'numeric' })
   }
 
+  // ---- Flashcard functions ----
+  async function generateFlashcards(filename) {
+    setIsGenerating(true)
+    setFlashcards([])
+    setFlippedCards(new Set())
+    setGeneratedFor(filename)
+    setFlashcardError(null)
+    try {
+      const { data } = await axios.post(`/api/courses/${courseId}/studybuddy/flashcards`, { filename })
+      setFlashcards(data.flashcards)
+    } catch (err) {
+      setFlashcardError(err.response?.data?.detail || 'Failed to generate flashcards. Please try again.')
+      setGeneratedFor(null)
+    } finally {
+      setIsGenerating(false)
+    }
+  }
+
+  function toggleCard(index) {
+    setFlippedCards(prev => {
+      const next = new Set(prev)
+      if (next.has(index)) next.delete(index)
+      else next.add(index)
+      return next
+    })
+  }
+
+  function resetAllCards() { setFlippedCards(new Set()) }
+  function flipAllCards() { setFlippedCards(new Set(flashcards.map((_, i) => i))) }
+
   return (
     <div className="flex h-full">
-      {/* Left panel — past conversations */}
+      {/* Left sidebar */}
       <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
+        {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200" style={{ borderLeftWidth: 4, borderLeftColor: '#522D80' }}>
-          <button
-            onClick={() => navigate(`/course/${courseId}`)}
-            className="text-xs text-gray-400 hover:text-gray-600 mb-1 block"
-          >
-            ← Back to course
-          </button>
           <h2 className="font-semibold text-gray-800 text-sm">StudyBuddy</h2>
           {course && <p className="text-xs text-gray-400 truncate mt-0.5">{course.name}</p>}
         </div>
@@ -238,7 +340,6 @@ export default function StudyBuddyPage() {
             New Chat
           </button>
         </div>
-
         <nav className="flex-1 overflow-y-auto py-1">
           {conversations.length === 0 ? (
             <p className="px-4 py-6 text-xs text-gray-400 text-center">No past conversations yet.</p>
@@ -271,49 +372,49 @@ export default function StudyBuddyPage() {
         </nav>
       </aside>
 
-      {/* Chat area */}
+      {/* Main content area */}
       <section className="flex-1 flex flex-col overflow-hidden bg-gray-50">
-        <div className="px-6 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white text-xs font-bold">SB</div>
-          <div>
-            <h3 className="font-semibold text-gray-800 text-sm">StudyBuddy</h3>
-            <p className="text-xs text-gray-400">
-              {activeConvId
-                ? conversations.find(c => c.id === activeConvId)?.title || 'Conversation'
-                : 'New conversation'}
-            </p>
+          <div className="px-6 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white text-xs font-bold">SB</div>
+            <div>
+              <h3 className="font-semibold text-gray-800 text-sm">StudyBuddy Chat</h3>
+              <p className="text-xs text-gray-400">
+                {activeConvId
+                  ? conversations.find(c => c.id === activeConvId)?.title || 'Conversation'
+                  : 'New conversation'}
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          {messages.map((msg, i) => (
-            <Message key={i} msg={msg} />
-          ))}
-          <div ref={bottomRef} />
-        </div>
-
-        <div className="px-6 py-4 bg-white border-t border-gray-200">
-          <div className="flex gap-3 items-end">
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask anything about the lecture slides… (Enter to send, Shift+Enter for newline)"
-              rows={1}
-              disabled={isStreaming}
-              className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 leading-relaxed"
-              style={{ maxHeight: '120px', overflowY: 'auto' }}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!input.trim() || isStreaming}
-              className="w-10 h-10 rounded-xl bg-purple-700 text-white flex items-center justify-center hover:bg-purple-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-            >
-              <SendIcon />
-            </button>
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {messages.map((msg, i) => (
+              <Message key={i} msg={msg} />
+            ))}
+            <div ref={bottomRef} />
           </div>
-        </div>
-      </section>
+
+          <div className="px-6 py-4 bg-white border-t border-gray-200">
+            <div className="flex gap-3 items-end">
+              <textarea
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask anything about the lecture slides… (Enter to send, Shift+Enter for newline)"
+                rows={1}
+                disabled={isStreaming}
+                className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 leading-relaxed"
+                style={{ maxHeight: '120px', overflowY: 'auto' }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || isStreaming}
+                className="w-10 h-10 rounded-xl bg-purple-700 text-white flex items-center justify-center hover:bg-purple-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                <SendIcon />
+              </button>
+            </div>
+          </div>
+        </section>
     </div>
   )
 }

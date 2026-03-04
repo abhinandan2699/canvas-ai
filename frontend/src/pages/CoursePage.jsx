@@ -97,13 +97,6 @@ export default function CoursePage() {
           icon={<AssignmentIcon />}
           onClick={() => navigate(`/course/${courseId}/assignments`)}
         />
-        <FileTypeCard
-          title="StudyBuddy"
-          description="AI tutor with full context of your lecture slides"
-          color="#522D80"
-          icon={<StudyBuddyIcon />}
-          onClick={() => navigate(`/course/${courseId}/studybuddy`)}
-        />
       </div>
     </div>
   )
