@@ -1,5 +1,7 @@
 import json
 import os
+import uuid
+import time
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +25,8 @@ app.add_middleware(
 BASE_DIR = Path(__file__).parent
 COURSES_DIR = BASE_DIR / "courses"
 COURSES_JSON = COURSES_DIR / "courses.json"
+CONVOS_DIR = BASE_DIR / "conversations"
+CONVOS_DIR.mkdir(exist_ok=True)
 
 openai_client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
@@ -144,6 +148,83 @@ def get_file(course_id: str, file_type: str, filename: str):
         raise HTTPException(status_code=403, detail="Access denied")
 
     return FileResponse(file_path)
+
+
+# ---------------------------------------------------------------------------
+# Conversation storage helpers
+# ---------------------------------------------------------------------------
+
+def conv_dir(course_id: str) -> Path:
+    d = CONVOS_DIR / course_id
+    d.mkdir(exist_ok=True)
+    return d
+
+def read_conv(course_id: str, conv_id: str) -> dict:
+    path = conv_dir(course_id) / f"{conv_id}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    with open(path) as f:
+        return json.load(f)
+
+def write_conv(course_id: str, data: dict):
+    path = conv_dir(course_id) / f"{data['id']}.json"
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+# ---------------------------------------------------------------------------
+# Conversation endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/courses/{course_id}/conversations")
+def list_conversations(course_id: str):
+    d = conv_dir(course_id)
+    convos = []
+    for f in sorted(d.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        with open(f) as fh:
+            data = json.load(fh)
+            convos.append({k: data[k] for k in ("id", "title", "createdAt") if k in data})
+    return convos
+
+
+@app.get("/api/courses/{course_id}/conversations/{conv_id}")
+def get_conversation(course_id: str, conv_id: str):
+    return read_conv(course_id, conv_id)
+
+
+class SaveConversationRequest(BaseModel):
+    id: str | None = None
+    title: str
+    messages: list[dict]
+
+
+@app.post("/api/courses/{course_id}/conversations")
+def save_conversation(course_id: str, body: SaveConversationRequest):
+    conv_id = body.id or str(uuid.uuid4())
+    # Load existing to preserve createdAt if updating
+    existing_created_at = None
+    existing_path = conv_dir(course_id) / f"{conv_id}.json"
+    if existing_path.exists():
+        with open(existing_path) as f:
+            existing_created_at = json.load(f).get("createdAt")
+
+    data = {
+        "id": conv_id,
+        "title": body.title,
+        "createdAt": existing_created_at or int(time.time() * 1000),
+        "messages": body.messages,
+    }
+    write_conv(course_id, data)
+    return data
+
+
+@app.delete("/api/courses/{course_id}/conversations/{conv_id}")
+def delete_conversation(course_id: str, conv_id: str):
+    path = conv_dir(course_id) / f"{conv_id}.json"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    path.unlink()
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------

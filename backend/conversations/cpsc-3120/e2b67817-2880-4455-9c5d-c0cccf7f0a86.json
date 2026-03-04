@@ -1,0 +1,15 @@
+{
+  "id": "e2b67817-2880-4455-9c5d-c0cccf7f0a86",
+  "title": "what is a*",
+  "createdAt": 1772602653238,
+  "messages": [
+    {
+      "role": "user",
+      "content": "what is a*"
+    },
+    {
+      "role": "assistant",
+      "content": "A* (A-star) is one of the most important informed search algorithms used in Artificial Intelligence and pathfinding. It improves upon Uniform Cost Search by utilizing a heuristic function to estimate the remaining distance to the goal. \n\nThe algorithm selects the node with the lowest evaluation function, denoted as:\n\n\\[ f(n) = g(n) + h(n) \\]\n\nHere:\n- \\( g(n) \\) represents the actual cost from the start node to the current node \\( n \\).\n- \\( h(n) \\) is the heuristic estimate of the cost from node \\( n \\) to the goal.\n\nIf the heuristic \\( h(n) \\) is admissible (meaning it never overestimates the true cost), A* guarantees the optimal path to the goal.\n\n**Data Structure Used:** A* uses a priority queue ordered by \\( f(n) \\).\n\n**Advantages:** A* is often much faster than Uniform Cost Search because it effectively guides the search toward the goal.\n\n**Applications:** It is widely used in areas such as game AI, robotics navigation, and GPS navigation systems.\n\n**Example Heuristics:** Common heuristics include Manhattan distance for grid maps and Euclidean distance for spatial graphs."
+    }
+  ]
+}
