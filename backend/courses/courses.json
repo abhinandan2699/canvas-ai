@@ -1,0 +1,20 @@
+{
+  "courses": [
+    {
+      "id": "cpsc-4420",
+      "name": "Artificial Intelligence",
+      "code": "S2508-CPSC-4420-002-89372",
+      "term": "Fall 2025",
+      "color": "#c0392b",
+      "folder": "cpsc-4420"
+    },
+    {
+      "id": "cpsc-3120",
+      "name": "Design Analysis of Algorithms",
+      "code": "S2601-CPSC-3120-003-22037",
+      "term": "Spring 2026",
+      "color": "#1e8449",
+      "folder": "cpsc-3120"
+    }
+  ]
+}
