@@ -19,30 +19,76 @@ function scoreColor(pct) {
   return '#f59e0b'
 }
 
-// Mini bar chart showing score trend across all attempts
+// SVG line graph showing score trend across all attempts
 function TrendChart({ history }) {
   if (history.length < 2) return null
-  const max = Math.max(...history.map(h => h.totalQuestions))
+
+  const W = 500
+  const H = 120
+  const PAD = { top: 20, right: 16, bottom: 28, left: 32 }
+  const chartW = W - PAD.left - PAD.right
+  const chartH = H - PAD.top - PAD.bottom
+
+  const pcts = history.map(h => Math.round((h.score / h.totalQuestions) * 100))
+  const minY = Math.max(0, Math.min(...pcts) - 10)
+  const maxY = Math.min(100, Math.max(...pcts) + 10)
+
+  const xOf = i => PAD.left + (i / (pcts.length - 1)) * chartW
+  const yOf = v => PAD.top + chartH - ((v - minY) / (maxY - minY)) * chartH
+
+  const points = pcts.map((v, i) => `${xOf(i)},${yOf(v)}`).join(' ')
+  const areaPoints = [
+    `${xOf(0)},${PAD.top + chartH}`,
+    ...pcts.map((v, i) => `${xOf(i)},${yOf(v)}`),
+    `${xOf(pcts.length - 1)},${PAD.top + chartH}`,
+  ].join(' ')
+
+  // Y axis gridlines at 0, 50, 100 if in range
+  const gridLines = [0, 25, 50, 75, 100].filter(v => v >= minY && v <= maxY)
+
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Score Trend</p>
-      <div className="flex items-end gap-2 h-24">
-        {history.map((h, i) => {
-          const pct = Math.round((h.score / h.totalQuestions) * 100)
-          const heightPct = (h.score / max) * 100
-          return (
-            <div key={i} className="flex flex-col items-center gap-1 flex-1 min-w-0">
-              <span className="text-xs font-semibold" style={{ color: scoreColor(pct) }}>{pct}%</span>
-              <div className="w-full rounded-t-md transition-all" style={{
-                height: `${Math.max(heightPct, 8)}%`,
-                backgroundColor: scoreColor(pct),
-                opacity: 0.85,
-              }} />
-              <span className="text-xs text-gray-400">#{i + 1}</span>
-            </div>
-          )
-        })}
-      </div>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Score Trend</p>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 140 }}>
+        <defs>
+          <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {gridLines.map(v => (
+          <g key={v}>
+            <line
+              x1={PAD.left} x2={PAD.left + chartW}
+              y1={yOf(v)} y2={yOf(v)}
+              stroke="#f0f0f0" strokeWidth="1"
+            />
+            <text x={PAD.left - 4} y={yOf(v) + 4} textAnchor="end"
+              fontSize="9" fill="#9ca3af">{v}%</text>
+          </g>
+        ))}
+
+        {/* Area fill */}
+        <polygon points={areaPoints} fill="url(#trendGrad)" />
+
+        {/* Line */}
+        <polyline points={points} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+
+        {/* Dots + labels */}
+        {pcts.map((v, i) => (
+          <g key={i}>
+            <circle cx={xOf(i)} cy={yOf(v)} r="4" fill="white" stroke={scoreColor(v)} strokeWidth="2" />
+            <text
+              x={xOf(i)} y={PAD.top + chartH + 16}
+              textAnchor="middle" fontSize="9" fill="#9ca3af"
+            >
+              #{i + 1}
+            </text>
+          </g>
+        ))}
+      </svg>
     </div>
   )
 }

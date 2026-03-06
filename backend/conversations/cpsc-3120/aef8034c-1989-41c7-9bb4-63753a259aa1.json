@@ -1,0 +1,15 @@
+{
+  "id": "aef8034c-1989-41c7-9bb4-63753a259aa1",
+  "title": "What is today's date?",
+  "createdAt": 1772745966099,
+  "messages": [
+    {
+      "role": "user",
+      "content": "What is today's date?"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, but I don't have access to real-time information, including today's date. My training includes knowledge up to October 2023, but I can't provide the current date. If you have questions about the course content, feel free to ask!"
+    }
+  ]
+}

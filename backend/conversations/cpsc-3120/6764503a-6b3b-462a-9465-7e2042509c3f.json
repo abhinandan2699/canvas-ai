@@ -1,0 +1,19 @@
+{
+  "id": "6764503a-6b3b-462a-9465-7e2042509c3f",
+  "title": "ucs",
+  "createdAt": 1772746634755,
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hi! I'm StudyBuddy. I've read all your lecture slides and I'm ready to help. Ask me anything about the course!"
+    },
+    {
+      "role": "user",
+      "content": "ucs"
+    },
+    {
+      "role": "assistant",
+      "content": "Uniform Cost Search (UCS) is a search algorithm specifically designed for weighted graphs where the edge costs may differ. Here are the key points about UCS:\n\n- **Data Structure Used**: UCS utilizes a priority queue, which is ordered by the cumulative path cost from the start node.\n\n- **Procedure**:\n  1. Start with the initial node and push it into the priority queue with a cost of 0.\n  2. Repeatedly remove the node with the lowest cumulative cost from the priority queue.\n  3. Expand its neighbors and update their cumulative path costs based on the cost to reach them.\n  4. Continue this process until the goal node is selected for expansion.\n\n- **Time Complexity**: The time complexity can be exponential in the worst-case scenario, which depends on the structure of the graph.\n\n- **Use Cases**: UCS is commonly used in applications like route planning, logistics optimization, and network routing.\n\nIf you have specific questions about UCS or need details on a particular aspect, feel free to ask!"
+    }
+  ]
+}

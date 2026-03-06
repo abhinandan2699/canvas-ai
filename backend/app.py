@@ -1,14 +1,18 @@
+import asyncio
 import json
 import os
+import re
+import tempfile
 import uuid
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from openai import AzureOpenAI
+from openai import AzureOpenAI, OpenAI
 
 load_dotenv()
 
@@ -35,6 +39,9 @@ openai_client = AzureOpenAI(
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
     api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
 )
+
+# Standard OpenAI client for DALL-E 3 and TTS (no Azure deployment needed)
+openai_std_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
 def load_courses():
@@ -288,6 +295,32 @@ If a question is not covered in the slides, say so honestly and help as best you
     )
 
 
+
+@app.post("/api/courses/{course_id}/studybuddy/transcribe")
+async def transcribe_audio(course_id: str, file: UploadFile = File(...)):
+    audio_bytes = await file.read()
+    audio_file = (file.filename or "audio.webm", audio_bytes, file.content_type)
+    result = openai_std_client.audio.transcriptions.create(
+        model="whisper-1",
+        file=audio_file,
+    )
+    return {"transcript": result.text}
+
+
+@app.post("/api/courses/{course_id}/studybuddy/tts")
+async def text_to_speech(course_id: str, body: dict):
+    text = body.get("text", "")
+    if not text:
+        raise HTTPException(status_code=400, detail="No text provided")
+    response = openai_std_client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=text,
+    )
+    audio_bytes = response.read()
+    return Response(content=audio_bytes, media_type="audio/mpeg")
+
+
 # ---------------------------------------------------------------------------
 # Flashcard generation endpoint
 # ---------------------------------------------------------------------------
@@ -365,6 +398,299 @@ def generate_flashcards(course_id: str, body: FlashcardRequest):
         raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {e}")
 
     return {"filename": body.filename, "flashcards": flashcards}
+
+
+# ---------------------------------------------------------------------------
+# Learning map endpoints
+# ---------------------------------------------------------------------------
+
+class LearningMapRequest(BaseModel):
+    filename: str
+
+
+def _extract_file_text(course: dict, filename: str) -> str:
+    lectures_dir = COURSES_DIR / course["folder"] / "lectures"
+    file_path = lectures_dir / filename
+    try:
+        file_path.resolve().relative_to(lectures_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+    ext = file_path.suffix.lower()
+    if ext == ".pdf":
+        return extract_text_from_pdf(file_path)
+    elif ext in (".pptx", ".ppt"):
+        return extract_text_from_pptx(file_path)
+    elif ext in (".txt", ".md"):
+        return file_path.read_text(errors="ignore")
+    raise HTTPException(status_code=400, detail="Unsupported file type")
+
+
+@app.post("/api/courses/{course_id}/studybuddy/learning-map")
+def generate_learning_map(course_id: str, body: LearningMapRequest):
+    courses = load_courses()
+    course = next((c for c in courses if c["id"] == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    text = _extract_file_text(course, body.filename)
+
+    response = openai_client.chat.completions.create(
+        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        max_tokens=3000,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert educator. Break the lecture content into 5–8 logical, self-contained study chunks "
+                    "in the order they should be learned. "
+                    "Always respond with ONLY a valid JSON array, no markdown, no extra text. "
+                    'Format: [{"title": "...", "description": "...", "keyPoints": ["...", "..."], "estimatedMinutes": 5}, ...] '
+                    "Make each title concise (max 6 words). "
+                    "Make each description one clear sentence explaining what the student will learn. "
+                    "Include 3–5 specific keyPoints per chunk that name the exact concepts covered."
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Break this lecture into study chunks:\n\n{text[:10000]}",
+            },
+        ],
+    )
+
+    content = response.choices[0].message.content.strip()
+    if content.startswith("```"):
+        first_newline = content.find("\n")
+        if first_newline != -1:
+            content = content[first_newline + 1:]
+        if content.endswith("```"):
+            content = content[:-3].strip()
+
+    try:
+        chunks = json.loads(content)
+        if not isinstance(chunks, list):
+            chunks = []
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {e}")
+
+    return {"filename": body.filename, "chunks": chunks}
+
+
+# ---------------------------------------------------------------------------
+# Video generation helpers
+# ---------------------------------------------------------------------------
+
+def _parse_script_scenes(script_text: str) -> list[dict]:
+    scenes = []
+    current = None
+    for line in script_text.split('\n'):
+        # Strip markdown bold/italic/heading markers
+        clean = re.sub(r'[*#_]+', '', line).strip()
+        if not clean:
+            continue
+        if re.match(r'^SCENE\s+\d+', clean, re.IGNORECASE):
+            if current:
+                scenes.append(current)
+            current = {'title': clean, 'visual': '', 'narration': ''}
+        elif current and re.match(r'^VISUAL\s*:', clean, re.IGNORECASE):
+            current['visual'] = re.sub(r'^VISUAL\s*:\s*', '', clean, flags=re.IGNORECASE)
+        elif current and re.match(r'^NARRATION\s*:', clean, re.IGNORECASE):
+            current['narration'] = re.sub(r'^NARRATION\s*:\s*', '', clean, flags=re.IGNORECASE)
+        elif current and current['narration']:
+            current['narration'] += ' ' + clean
+    if current:
+        scenes.append(current)
+
+    # Fallback: treat the full script as one scene so video generation never fails
+    if not scenes and script_text.strip():
+        scenes = [{'title': 'Scene 1', 'visual': '', 'narration': script_text.strip()[:4000]}]
+
+    return scenes
+
+
+def _generate_scene_assets(scene_idx: int, scene: dict, temp_dir: str) -> tuple[str, str]:
+    import requests as req
+
+    # Generate image with DALL-E 3
+    raw_visual = scene['visual'] or f"diagram illustrating {scene['title']}"
+    visual_prompt = (
+        f"A flat, clean educational diagram in the style of a university textbook. "
+        f"Pure white background. Uses labeled boxes, arrows, flowcharts, or annotated figures as appropriate. "
+        f"2D vector-art style — NO photography, NO people, NO 3D renders, NO abstract art, NO gradients. "
+        f"All text labels are legible. The diagram clearly shows: {raw_visual}. "
+        f"Topic context: {scene['title']}."
+    )
+    img_response = openai_std_client.images.generate(
+        model="dall-e-3",
+        prompt=visual_prompt,
+        size="1792x1024",
+        quality="hd",
+        n=1,
+    )
+    img_url = img_response.data[0].url
+    img_path = os.path.join(temp_dir, f"scene_{scene_idx}.png")
+    r = req.get(img_url, timeout=60)
+    r.raise_for_status()
+    with open(img_path, 'wb') as f:
+        f.write(r.content)
+
+    # Generate TTS narration
+    narration_text = scene['narration'] or scene['title']
+    speech_response = openai_std_client.audio.speech.create(
+        model="tts-1",
+        voice="alloy",
+        input=narration_text,
+    )
+    mp3_path = os.path.join(temp_dir, f"scene_{scene_idx}.mp3")
+    speech_response.stream_to_file(mp3_path)
+
+    return img_path, mp3_path
+
+
+def _compose_video(scene_assets: list, output_path: str):
+    from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
+
+    clips = []
+    for img_path, mp3_path in scene_assets:
+        audio = AudioFileClip(mp3_path)
+        clip = ImageClip(img_path).with_duration(audio.duration).with_audio(audio)
+        clips.append(clip)
+
+    final = concatenate_videoclips(clips, method="compose")
+    final.write_videofile(output_path, fps=24, codec="libx264", audio_codec="aac", logger=None)
+
+    for clip in clips:
+        clip.close()
+    final.close()
+
+
+class ChunkActionRequest(BaseModel):
+    filename: str
+    action: str  # "summarize" or "video"
+    chunkTitle: str
+    chunkDescription: str
+    keyPoints: list[str]
+
+
+@app.post("/api/courses/{course_id}/studybuddy/chunk-action")
+def chunk_action(course_id: str, body: ChunkActionRequest):
+    courses = load_courses()
+    course = next((c for c in courses if c["id"] == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    if body.action not in ("summarize", "video"):
+        raise HTTPException(status_code=400, detail="action must be 'summarize' or 'video'")
+
+    text = _extract_file_text(course, body.filename)
+    key_points_str = "\n".join(f"- {kp}" for kp in body.keyPoints)
+
+    if body.action == "summarize":
+        system_msg = (
+            "You are a study assistant. Write a clear, detailed study summary for the given topic. "
+            "Use simple language. Structure the summary with a short intro paragraph, then cover each key point "
+            "in depth with examples where helpful. End with a 1-sentence takeaway. "
+            "Format using plain text with clear paragraph breaks — no markdown headings."
+        )
+        user_msg = (
+            f"Write a comprehensive study summary for the topic: '{body.chunkTitle}'\n"
+            f"Description: {body.chunkDescription}\n"
+            f"Key concepts to cover:\n{key_points_str}\n\n"
+            f"Use this lecture content as your source:\n\n{text[:8000]}"
+        )
+    else:  # video
+        system_msg = (
+            "You are an educational video scriptwriter. Write a structured script for a short (3–5 min) "
+            "educational explainer video. "
+            "Format it as numbered scenes. Each scene must have: "
+            "SCENE [n]: [Scene title]\n"
+            "VISUAL: [What appears on screen — diagrams, animations, text]\n"
+            "NARRATION: [Exact words the narrator speaks]\n"
+            "Keep narration conversational and engaging. End with a recap scene."
+        )
+        user_msg = (
+            f"Write a video script for: '{body.chunkTitle}'\n"
+            f"Description: {body.chunkDescription}\n"
+            f"Topics to cover:\n{key_points_str}\n\n"
+            f"Use this lecture content as your source:\n\n{text[:8000]}"
+        )
+
+    response = openai_client.chat.completions.create(
+        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        max_tokens=2048,
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+    )
+
+    result = response.choices[0].message.content.strip()
+    return {"action": body.action, "chunkTitle": body.chunkTitle, "result": result}
+
+
+@app.post("/api/courses/{course_id}/studybuddy/generate-video")
+async def generate_video_endpoint(course_id: str, body: ChunkActionRequest):
+    courses = load_courses()
+    course = next((c for c in courses if c["id"] == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    text = _extract_file_text(course, body.filename)
+    key_points_str = "\n".join(f"- {kp}" for kp in body.keyPoints)
+
+    system_msg = (
+        "You are an expert educational video scriptwriter. Write a thorough, deeply explanatory script "
+        "for a 6–10 minute educational explainer video. "
+        "The video must have 6–8 scenes. Each scene MUST follow this exact format:\n\n"
+        "SCENE [n]: [Descriptive scene title]\n"
+        "VISUAL: [Detailed description of what appears on screen — diagrams, labels, animations, examples, equations]\n"
+        "NARRATION: [The narrator's full spoken words — minimum 120 words per scene. "
+        "Explain the concept thoroughly, use analogies, walk through examples step by step, "
+        "and connect ideas to real-world applications. Do not summarise — fully explain.]\n\n"
+        "Rules:\n"
+        "- Every NARRATION must be at least 120 words\n"
+        "- Use plain conversational language a student can follow\n"
+        "- Each scene covers ONE idea deeply, not multiple ideas superficially\n"
+        "- End with a 'Recap' scene that ties everything together\n"
+        "- Do not use markdown, bullet points, or headers inside NARRATION"
+    )
+    user_msg = (
+        f"Write a detailed, comprehensive video script for: '{body.chunkTitle}'\n"
+        f"Description: {body.chunkDescription}\n"
+        f"Key concepts to cover deeply:\n{key_points_str}\n\n"
+        f"Lecture source material:\n\n{text[:10000]}"
+    )
+
+    script_response = openai_client.chat.completions.create(
+        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        max_tokens=4096,
+        messages=[
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ],
+    )
+    script_text = script_response.choices[0].message.content.strip()
+    scenes = _parse_script_scenes(script_text)
+
+    loop = asyncio.get_running_loop()
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        with ThreadPoolExecutor(max_workers=min(len(scenes), 8)) as executor:
+            futures = [
+                loop.run_in_executor(executor, _generate_scene_assets, i, scene, temp_dir)
+                for i, scene in enumerate(scenes)
+            ]
+            scene_assets = await asyncio.gather(*futures)
+
+        output_path = os.path.join(temp_dir, "output.mp4")
+        await loop.run_in_executor(None, _compose_video, list(scene_assets), output_path)
+
+        with open(output_path, "rb") as f:
+            video_bytes = f.read()
+
+    from fastapi.responses import Response
+    return Response(content=video_bytes, media_type="video/mp4")
 
 
 # ---------------------------------------------------------------------------

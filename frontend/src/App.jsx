@@ -9,6 +9,7 @@ import LecturePage from './pages/LecturePage'
 import MCQPage from './pages/MCQPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import ScoreHistoryPage from './pages/ScoreHistoryPage'
+import LearningMapPage from './pages/LearningMapPage'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             {/* Lecture learning hub — must come before the generic :fileType catch-all */}
             <Route path="/course/:courseId/lectures" element={<LectureListPage />} />
             <Route path="/course/:courseId/lectures/:filename/flashcards" element={<FlashcardsPage />} />
+            <Route path="/course/:courseId/lectures/:filename/map" element={<LearningMapPage />} />
             <Route path="/course/:courseId/lectures/:filename/history" element={<ScoreHistoryPage />} />
             <Route path="/course/:courseId/lectures/:filename/mcq" element={<MCQPage />} />
             <Route path="/course/:courseId/lectures/:filename" element={<LecturePage />} />

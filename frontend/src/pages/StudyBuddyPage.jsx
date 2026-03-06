@@ -14,6 +14,15 @@ function SendIcon() {
   )
 }
 
+function MicIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8" />
+    </svg>
+  )
+}
+
 function PlusIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
@@ -42,6 +51,27 @@ function DocumentIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4 flex-shrink-0">
       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+    </svg>
+  )
+}
+
+function StopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path fillRule="evenodd" d="M4.5 7.5a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-9Z" clipRule="evenodd" />
+    </svg>
+  )
+}
+
+function SpeakerIcon({ muted = false }) {
+  return muted ? (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 0 0 1.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06ZM17.78 9.22a.75.75 0 1 0-1.06 1.06L18.44 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 1 0 1.06-1.06L20.56 12l1.72-1.72a.75.75 0 1 0-1.06-1.06l-1.72 1.72-1.72-1.72Z" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+      <path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 0 0 1.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06ZM18.584 5.106a.75.75 0 0 1 1.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 0 1-1.06-1.06 8.25 8.25 0 0 0 0-11.668.75.75 0 0 1 0-1.06Z" />
+      <path d="M15.932 7.757a.75.75 0 0 1 1.061 0 6 6 0 0 1 0 8.486.75.75 0 0 1-1.06-1.061 4.5 4.5 0 0 0 0-6.364.75.75 0 0 1 0-1.06Z" />
     </svg>
   )
 }
@@ -142,8 +172,15 @@ export default function StudyBuddyPage() {
   const [messages, setMessages] = useState([WELCOME])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioMode, setAudioMode] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false)
   const bottomRef = useRef(null)
   const activeConvIdRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const audioChunksRef = useRef([])
+  const currentAudioRef = useRef(null)
 
   // Flashcard state
   const [lectureFiles, setLectureFiles] = useState([])
@@ -247,6 +284,7 @@ export default function StudyBuddyPage() {
 
       const finalMessages = [...updatedMessages, { role: 'assistant', content: accumulated }]
       setMessages([WELCOME, ...finalMessages.slice(1)])
+      if (audioMode) speakText(accumulated)
 
       const toSave = finalMessages.filter(m => m !== WELCOME)
       const { data: saved } = await axios.post(`/api/courses/${courseId}/conversations`, {
@@ -279,6 +317,67 @@ export default function StudyBuddyPage() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
+    }
+  }
+
+  async function startRecording() {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    const recorder = new MediaRecorder(stream)
+    audioChunksRef.current = []
+    recorder.ondataavailable = e => audioChunksRef.current.push(e.data)
+    recorder.onstop = async () => {
+      const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+      stream.getTracks().forEach(t => t.stop())
+      await transcribeAudio(blob)
+    }
+    recorder.start()
+    mediaRecorderRef.current = recorder
+    setIsRecording(true)
+  }
+
+  function stopRecording() {
+    mediaRecorderRef.current?.stop()
+    setIsRecording(false)
+  }
+
+  async function transcribeAudio(blob) {
+    const formData = new FormData()
+    formData.append('file', blob, 'audio.webm')
+    const res = await fetch(`/api/courses/${courseId}/studybuddy/transcribe`, {
+      method: 'POST',
+      body: formData,
+    })
+    const data = await res.json()
+    if (data.transcript) setInput(prev => prev + data.transcript)
+  }
+
+  function stopAudio() {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause()
+      currentAudioRef.current = null
+    }
+    setIsPlaying(false)
+    setIsLoadingAudio(false)
+  }
+
+  async function speakText(text) {
+    stopAudio()
+    setIsLoadingAudio(true)
+    const res = await fetch(`/api/courses/${courseId}/studybuddy/tts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    })
+    const blob = await res.blob()
+    const url = URL.createObjectURL(blob)
+    const audio = new Audio(url)
+    currentAudioRef.current = audio
+    setIsLoadingAudio(false)
+    setIsPlaying(true)
+    audio.play()
+    audio.onended = () => {
+      URL.revokeObjectURL(url)
+      setIsPlaying(false)
     }
   }
 
@@ -384,6 +483,44 @@ export default function StudyBuddyPage() {
                   : 'New conversation'}
               </p>
             </div>
+            <div className="ml-auto flex items-center gap-2">
+              {isLoadingAudio && (
+                <div className="flex items-center gap-1.5 text-xs text-purple-500">
+                  <svg className="w-3.5 h-3.5 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4Z" />
+                  </svg>
+                  <span>Loading audio…</span>
+                </div>
+              )}
+              {isPlaying && (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-end gap-0.5 h-4">
+                    <span className="w-0.5 bg-purple-500 rounded-full animate-[bounce_0.8s_ease-in-out_infinite]" style={{ height: '40%', animationDelay: '0ms' }} />
+                    <span className="w-0.5 bg-purple-500 rounded-full animate-[bounce_0.8s_ease-in-out_infinite]" style={{ height: '100%', animationDelay: '150ms' }} />
+                    <span className="w-0.5 bg-purple-500 rounded-full animate-[bounce_0.8s_ease-in-out_infinite]" style={{ height: '60%', animationDelay: '300ms' }} />
+                    <span className="w-0.5 bg-purple-500 rounded-full animate-[bounce_0.8s_ease-in-out_infinite]" style={{ height: '80%', animationDelay: '100ms' }} />
+                    <span className="w-0.5 bg-purple-500 rounded-full animate-[bounce_0.8s_ease-in-out_infinite]" style={{ height: '40%', animationDelay: '250ms' }} />
+                  </div>
+                  <button
+                    onClick={stopAudio}
+                    title="Stop audio"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
+                  >
+                    <StopIcon />
+                  </button>
+                </div>
+              )}
+              <button
+                onClick={() => setAudioMode(prev => !prev)}
+                title={audioMode ? 'Disable audio responses' : 'Enable audio responses'}
+                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                  audioMode ? 'bg-purple-700 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                <SpeakerIcon muted={!audioMode} />
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
@@ -405,6 +542,18 @@ export default function StudyBuddyPage() {
                 className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 leading-relaxed"
                 style={{ maxHeight: '120px', overflowY: 'auto' }}
               />
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                disabled={isStreaming}
+                title={isRecording ? 'Stop recording' : 'Record audio'}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 disabled:cursor-not-allowed ${
+                  isRecording
+                    ? 'bg-red-500 text-white animate-pulse'
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                <MicIcon />
+              </button>
               <button
                 onClick={sendMessage}
                 disabled={!input.trim() || isStreaming}
