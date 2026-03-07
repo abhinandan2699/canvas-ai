@@ -1,0 +1,132 @@
+{
+  "filename": "Assignment2_AStar_Search.pdf",
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Read and Understand Specification",
+      "description": "Thoroughly read the assignment specification for CPSC-4420 Assignment 2 and understand all requirements and components.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "2",
+      "title": "Design A* Algorithm Structure",
+      "description": "Plan the overall structure and flow of the A* search algorithm to be implemented in astar.py, including parameter handling and data structures.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "3",
+      "title": "Implement A* Core Algorithm",
+      "description": "Implement the A* core algorithm in the astar.py file, including the min-heap structure and closed set to avoid revisiting states.",
+      "estimatedHours": 1.5,
+      "completed": false
+    },
+    {
+      "id": "4",
+      "title": "Implement 8-Puzzle State Representation",
+      "description": "Create the puzzle.py file to implement the state representation of the 8-puzzle, ensuring it is hashable and can generate valid successors.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "5",
+      "title": "Write Unit Tests for A*",
+      "description": "Write tests in tests.py to validate scenarios such as solving a 1-step puzzle, a 10-step puzzle, and testing for unsolvable or already-solved puzzles.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "6",
+      "title": "Implement Zero Heuristic",
+      "description": "Implement the zero heuristic function (h0) in astar.py, which always returns 0.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "7",
+      "title": "Implement Misplaced Tiles Heuristic",
+      "description": "Implement the misplaced tiles heuristic function (h1) in astar.py that counts tiles not in their goal position.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "8",
+      "title": "Implement Manhattan Distance Heuristic",
+      "description": "Implement the Manhattan distance heuristic function (h2) in astar.py to calculate the distance each tile must travel to reach its goal.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "9",
+      "title": "Design Custom Heuristic",
+      "description": "Design a custom heuristic function (h3) in astar.py that is admissible, ensuring it meets the criteria for heuristic functions.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "10",
+      "title": "Run Heuristic Evaluation Tests",
+      "description": "Execute the evaluation tests provided in test_cases.py to measure nodes expanded, path lengths, and wall-clock time for each heuristic.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "11",
+      "title": "Write Heuristic Evaluation Table",
+      "description": "Compile the results from the heuristic evaluation tests into a formatted table for analysis in report.pdf.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "12",
+      "title": "Write Analysis Section",
+      "description": "In report.pdf, write the analysis section explaining findings on heuristics and their efficiencies based on experimental results.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "13",
+      "title": "Implement Grid-World Functionality",
+      "description": "Create grid_world.py to implement the A* and Dijkstra's algorithm for navigating a weighted grid-world.",
+      "estimatedHours": 1.5,
+      "completed": false
+    },
+    {
+      "id": "14",
+      "title": "Load Grid and Run Algorithms",
+      "description": "In grid_world.py, implement loading from grid_world.json and running both A* and Dijkstra\u2019s algorithm.",
+      "estimatedHours": 1,
+      "completed": false
+    },
+    {
+      "id": "15",
+      "title": "Visualize Grid and Output Results",
+      "description": "Visualize the grid and path using matplotlib in grid_world.py or implement ASCII art output as needed.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "16",
+      "title": "Create Command-Line Interface",
+      "description": "Add command-line argument parsing in grid_world.py to accept start and goal parameters along with optional flags.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "17",
+      "title": "Write Final Report",
+      "description": "Compile all findings, analysis, and processes into report.pdf, ensuring it meets the assignment constraints for length and formatting.",
+      "estimatedHours": 1,
+      "completed": false
+    },
+    {
+      "id": "18",
+      "title": "Finalize Code and Submission Package",
+      "description": "Review all code and documentation, package files into a .zip file named Lastname_Firstname_A2.zip for submission.",
+      "estimatedHours": 0.25,
+      "completed": false
+    }
+  ],
+  "savedAt": 1772923127688
+}
