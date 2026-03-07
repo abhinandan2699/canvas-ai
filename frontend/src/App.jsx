@@ -10,6 +10,10 @@ import MCQPage from './pages/MCQPage'
 import FlashcardsPage from './pages/FlashcardsPage'
 import ScoreHistoryPage from './pages/ScoreHistoryPage'
 import LearningMapPage from './pages/LearningMapPage'
+import AssignmentListPage from './pages/AssignmentListPage'
+import AssignmentPage from './pages/AssignmentPage'
+import AssignmentChatPage from './pages/AssignmentChatPage'
+import AssignmentViewPage from './pages/AssignmentViewPage'
 
 export default function App() {
   return (
@@ -29,7 +33,12 @@ export default function App() {
             <Route path="/course/:courseId/lectures/:filename/history" element={<ScoreHistoryPage />} />
             <Route path="/course/:courseId/lectures/:filename/mcq" element={<MCQPage />} />
             <Route path="/course/:courseId/lectures/:filename" element={<LecturePage />} />
-            {/* Assignments and any other file types still use the file viewer */}
+            {/* Assignment hub — must come before the generic :fileType catch-all */}
+            <Route path="/course/:courseId/assignments" element={<AssignmentListPage />} />
+            <Route path="/course/:courseId/assignments/:filename/view" element={<AssignmentViewPage />} />
+            <Route path="/course/:courseId/assignments/:filename/chat" element={<AssignmentChatPage />} />
+            <Route path="/course/:courseId/assignments/:filename" element={<AssignmentPage />} />
+            {/* Other file types fallback */}
             <Route path="/course/:courseId/:fileType" element={<FileViewerPage />} />
           </Routes>
         </main>

@@ -33,6 +33,8 @@ CONVOS_DIR = BASE_DIR / "conversations"
 CONVOS_DIR.mkdir(exist_ok=True)
 PROGRESS_DIR = BASE_DIR / "progress"
 PROGRESS_DIR.mkdir(exist_ok=True)
+TRACKERS_DIR = BASE_DIR / "trackers"
+TRACKERS_DIR.mkdir(exist_ok=True)
 
 openai_client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
@@ -829,6 +831,220 @@ def save_progress(course_id: str, filename: str, body: ProgressUpdate):
     }
     _write_progress(course_id, data)
     return data[filename]
+
+
+# ---------------------------------------------------------------------------
+# Assignment helpers
+# ---------------------------------------------------------------------------
+
+def extract_assignment_text(course: dict, filename: str) -> str:
+    assign_dir = COURSES_DIR / course["folder"] / "assignments"
+    file_path = assign_dir / filename
+    try:
+        file_path.resolve().relative_to(assign_dir.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Access denied")
+    if not file_path.exists() or not file_path.is_file():
+        raise HTTPException(status_code=404, detail="Assignment file not found")
+    ext = file_path.suffix.lower()
+    if ext == ".pdf":
+        return extract_text_from_pdf(file_path)
+    elif ext in (".pptx", ".ppt"):
+        return extract_text_from_pptx(file_path)
+    elif ext in (".txt", ".md"):
+        return file_path.read_text(errors="ignore")
+    raise HTTPException(status_code=400, detail="Unsupported file type")
+
+
+def _tracker_path(course_id: str, filename: str) -> Path:
+    d = TRACKERS_DIR / course_id
+    d.mkdir(exist_ok=True)
+    safe_name = filename.replace("/", "_").replace("..", "_")
+    return d / f"{safe_name}.json"
+
+
+# ---------------------------------------------------------------------------
+# Assignment Chat endpoint (with guardrails)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/courses/{course_id}/assignments/{filename}/chat")
+def assignment_chat(course_id: str, filename: str, body: ChatRequest):
+    courses = load_courses()
+    course = next((c for c in courses if c["id"] == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    assignment_text = extract_assignment_text(course, filename)
+    assignment_name = filename.rsplit(".", 1)[0].replace("_", " ")
+
+    system_prompt = f"""You are AssignmentHelper, an AI tutor for the assignment "{assignment_name}" in the course "{course['name']}".
+
+You have been given the full assignment document below. Your role is to help students understand the assignment, clarify requirements, and learn the underlying concepts — but you must NEVER do the assignment for them.
+
+GUARDRAILS (strictly enforced):
+1. NEVER write complete code solutions, algorithm implementations, or answer keys for any part of the assignment.
+2. NEVER directly solve specific assignment tasks, even if the student asks explicitly.
+3. NEVER provide complete answers to assignment questions — guide the student to find the answer themselves.
+4. Do NOT write more than 3–5 lines of illustrative pseudocode or code, and only when it clarifies a concept unrelated to the actual task.
+
+WHAT YOU CAN HELPFULLY DO:
+- Explain what each deliverable requires and clarify ambiguous wording.
+- Discuss the rubric, point breakdown, and what graders will look for.
+- Explain underlying concepts, algorithms, and theory relevant to the assignment.
+- Suggest a high-level approach or strategy without providing the implementation.
+- Point to relevant lecture slides, textbook chapters, or documentation.
+- Ask guiding questions to help the student think through the problem.
+- Review a student's high-level approach and give directional feedback.
+- Help interpret error messages by describing what the fix should do (not writing it).
+- Estimate time required for each part and help with planning.
+
+Always encourage independent thinking. If a student asks you to "just write the code" or "give me the answer", politely decline and explain why, then offer a helpful alternative (explain the concept, ask a guiding question, etc.).
+
+--- ASSIGNMENT DOCUMENT ---
+{assignment_text}
+--- END ASSIGNMENT DOCUMENT ---"""
+
+    def stream():
+        response = openai_client.chat.completions.create(
+            model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+            max_tokens=2048,
+            stream=True,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                *[{"role": m.role, "content": m.content} for m in body.messages],
+            ],
+        )
+        for chunk in response:
+            if not chunk.choices:
+                continue
+            text = chunk.choices[0].delta.content
+            if text:
+                yield f"data: {json.dumps(text)}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+# ---------------------------------------------------------------------------
+# Assignment Breakdown endpoint (AI-generated subtask list)
+# ---------------------------------------------------------------------------
+
+@app.post("/api/courses/{course_id}/assignments/{filename}/breakdown")
+def assignment_breakdown(course_id: str, filename: str):
+    courses = load_courses()
+    course = next((c for c in courses if c["id"] == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    assignment_text = extract_assignment_text(course, filename)
+
+    response = openai_client.chat.completions.create(
+        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        max_tokens=2048,
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert CS teaching assistant who helps undergraduate students plan their assignments. "
+                    "Break the assignment into concrete, actionable subtasks ordered from start to final submission.\n\n"
+                    "ESTIMATION RULES — strict per-task caps for an undergraduate student:\n"
+                    "- Reading and understanding the spec: 0.25 hr\n"
+                    "- Designing or planning a data structure (no coding): 0.25 hr\n"
+                    "- Implementing a single simple function or class (<50 lines): 0.25–0.5 hr\n"
+                    "- Implementing a moderately complex function (50–100 lines): 0.5 hr\n"
+                    "- Implementing a complete algorithm from scratch (e.g. A*, BFS): 1–1.5 hrs\n"
+                    "- Debugging a specific component: 0.5 hr\n"
+                    "- Writing unit tests (5–10 tests): 0.5 hr\n"
+                    "- Running experiments and collecting results: 0.25–0.5 hr\n"
+                    "- Writing a short analysis section (1–2 paragraphs): 0.25 hr\n"
+                    "- Writing a full written report (3–4 pages): 1 hr\n"
+                    "- Final review, packaging, and submission: 0.25 hr\n"
+                    "TARGET: total across ALL tasks must be between 6–10 hours. "
+                    "If your sum would exceed 10 hours, reduce individual estimates to fit within this range.\n\n"
+                    "TASK RULES:\n"
+                    "- Each task must map to ONE specific deliverable, function, or section — not a broad phase.\n"
+                    "- Start every title with an action verb (Implement, Write, Design, Run, Debug, etc.).\n"
+                    "- The description must name the exact file, function, class, or section being worked on.\n"
+                    "- Use point weights from the rubric to calibrate effort: higher-point parts need more tasks and more time.\n"
+                    "- Include 8–12 tasks total covering every graded component plus submission.\n"
+                    "- Do NOT bundle multiple major components into one task.\n\n"
+                    "Always respond with ONLY a valid JSON array, no markdown, no extra text.\n"
+                    'Format: [{"id": "1", "title": "...", "description": "...", "estimatedHours": 1.5}, ...]'
+                ),
+            },
+            {
+                "role": "user",
+                "content": f"Break this assignment into realistic, granular subtasks with accurate time estimates:\n\n{assignment_text[:8000]}",
+            },
+        ],
+    )
+
+    content = response.choices[0].message.content.strip()
+    if content.startswith("```"):
+        first_newline = content.find("\n")
+        if first_newline != -1:
+            content = content[first_newline + 1:]
+        if content.endswith("```"):
+            content = content[:-3].strip()
+
+    try:
+        tasks = json.loads(content)
+        if not isinstance(tasks, list):
+            tasks = []
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {e}")
+
+    # Ensure each task has an id and completed=False
+    for i, task in enumerate(tasks):
+        task.setdefault("id", str(i + 1))
+        task["completed"] = False
+        task["estimatedHours"] = float(task.get("estimatedHours") or 0.5)
+
+    # Hard-cap: if AI overshoots, scale all estimates down proportionally to fit within 10h
+    MAX_TOTAL_HOURS = 10.0
+    total = sum(t["estimatedHours"] for t in tasks)
+    if total > MAX_TOTAL_HOURS:
+        scale = MAX_TOTAL_HOURS / total
+        for task in tasks:
+            # Round to nearest 0.25h increment
+            raw = task["estimatedHours"] * scale
+            task["estimatedHours"] = round(raw * 4) / 4
+
+    return {"filename": filename, "tasks": tasks}
+
+
+# ---------------------------------------------------------------------------
+# Assignment Tracker state persistence
+# ---------------------------------------------------------------------------
+
+@app.get("/api/courses/{course_id}/assignments/{filename}/tracker")
+def get_tracker(course_id: str, filename: str):
+    path = _tracker_path(course_id, filename)
+    if not path.exists():
+        return {"tasks": None}
+    with open(path) as f:
+        return json.load(f)
+
+
+class TrackerSaveRequest(BaseModel):
+    tasks: list[dict]
+
+
+@app.put("/api/courses/{course_id}/assignments/{filename}/tracker")
+def save_tracker(course_id: str, filename: str, body: TrackerSaveRequest):
+    path = _tracker_path(course_id, filename)
+    data = {"filename": filename, "tasks": body.tasks, "savedAt": int(time.time() * 1000)}
+    with open(path, "w") as f:
+        json.dump(data, f, indent=2)
+    return data
 
 
 if __name__ == "__main__":
