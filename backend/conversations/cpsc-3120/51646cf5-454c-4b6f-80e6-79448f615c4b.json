@@ -1,0 +1,19 @@
+{
+  "id": "51646cf5-454c-4b6f-80e6-79448f615c4b",
+  "title": "a*",
+  "createdAt": 1772746799259,
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hi! I'm StudyBuddy. I've read all your lecture slides and I'm ready to help. Ask me anything about the course!"
+    },
+    {
+      "role": "user",
+      "content": "a*"
+    },
+    {
+      "role": "assistant",
+      "content": "A* (A-star) is an informed search algorithm commonly used in Artificial Intelligence and pathfinding. It enhances the Uniform Cost Search (UCS) by incorporating a heuristic function that helps estimate the remaining distance to the goal, making the search process more efficient.\n\n### Key Points About A*:\n\n- **Evaluation Function**: A* uses the evaluation function:\n  \\[\n  f(n) = g(n) + h(n)\n  \\]\n  - \\(g(n)\\): The actual cost from the start node to the current node \\(n\\).\n  - \\(h(n)\\): The heuristic estimate of the cost from node \\(n\\) to the goal. \n\n- **Heuristic**: If the heuristic \\(h(n)\\) is admissible (meaning it never overestimates the true cost), A* guarantees that the path found is optimal.\n\n- **Data Structure Used**: A* employs a priority queue ordered by the evaluation function \\(f(n)\\).\n\n- **Advantages**: A* is often much faster than UCS because it uses the heuristic to guide the search toward the goal, reducing the number of nodes that need to be explored.\n\n- **Applications**: A* is widely used in game AI, robotics navigation, and GPS navigation systems.\n\n- **Example Heuristics**: Common heuristics include Manhattan distance for grid maps and Euclidean distance for spatial graphs.\n\nIf you have any more specific questions or need more details, feel free to ask!"
+    }
+  ]
+}

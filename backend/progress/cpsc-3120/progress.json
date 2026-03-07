@@ -1,0 +1,35 @@
+{
+  "lecture1.pdf": {
+    "bestScore": 9,
+    "totalQuestions": 11,
+    "attempts": 2,
+    "lastTaken": 1772652299315,
+    "history": [
+      {
+        "date": 1772652233909,
+        "score": 9,
+        "totalQuestions": 11,
+        "weakAreas": [
+          "Breadth-First Search \u2014 time complexity analysis",
+          "Uniform Cost Search \u2014 complexities and limitations"
+        ]
+      },
+      {
+        "date": 1772652299315,
+        "score": 2,
+        "totalQuestions": 11,
+        "weakAreas": [
+          "Breadth-First Search (BFS) \u2014 data structure and traversal order",
+          "Complexity analysis \u2014 Breadth-First Search (BFS) time complexity",
+          "Uniform Cost Search (UCS) \u2014 use cases and application",
+          "A* Search Algorithm \u2014 optimization through heuristic use",
+          "A* Search Algorithm \u2014 complexity and performance considerations",
+          "Depth-First Search (DFS) \u2014 exploration method and strategy",
+          "Breadth-First Search (BFS) \u2014 practical applications and use cases",
+          "Depth-First Search (DFS) \u2014 applications in graph theory",
+          "Uniform Cost Search (UCS) \u2014 data structure and prioritization"
+        ]
+      }
+    ]
+  }
+}
