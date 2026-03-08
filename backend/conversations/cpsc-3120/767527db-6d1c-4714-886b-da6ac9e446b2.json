@@ -1,0 +1,39 @@
+{
+  "id": "767527db-6d1c-4714-886b-da6ac9e446b2",
+  "title": "tell in english",
+  "createdAt": 1772928242761,
+  "messages": [
+    {
+      "role": "user",
+      "content": "hi"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How can I assist you today with your course on Design Analysis of Algorithms? If you have any questions, feel free to ask!"
+    },
+    {
+      "role": "user",
+      "content": "Hola"
+    },
+    {
+      "role": "assistant",
+      "content": "\u00a1Hola! \u00bfEn qu\u00e9 puedo ayudarte hoy con tu curso de An\u00e1lisis de Dise\u00f1o de Algoritmos? Si tienes alguna pregunta, no dudes en hacerla."
+    },
+    {
+      "role": "user",
+      "content": "\u00bfQu\u00e9 estructura de datos se utiliza en el algoritmo UCS?"
+    },
+    {
+      "role": "assistant",
+      "content": "En el algoritmo Uniform Cost Search (UCS), se utiliza una **cola de prioridad** ordenada por el costo del camino. Esta estructura de datos permite que UCS expanda el nodo con el costo acumulativo m\u00e1s bajo desde el nodo inicial. Si tienes m\u00e1s preguntas sobre UCS o cualquier otro tema, h\u00e1zmelo saber."
+    },
+    {
+      "role": "user",
+      "content": "tell in english"
+    },
+    {
+      "role": "assistant",
+      "content": "In the Uniform Cost Search (UCS) algorithm, a **priority queue** is used, ordered by path cost. This data structure allows UCS to expand the node with the lowest cumulative cost from the start node. If you have more questions about UCS or any other topic, feel free to ask!"
+    }
+  ]
+}

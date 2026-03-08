@@ -7,7 +7,7 @@ import uuid
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from fastapi import FastAPI, File, HTTPException, Response, UploadFile
+from fastapi import Body, FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
@@ -49,6 +49,16 @@ openai_std_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 def load_courses():
     with open(COURSES_JSON) as f:
         return json.load(f)["courses"]
+
+
+def _language_instruction(lang: str) -> str:
+    """Append to system prompts so AI responds in the requested language."""
+    if lang and str(lang).lower() == "es":
+        return (
+            "\n\nIMPORTANT: You must respond ONLY in Spanish (Español). "
+            "All your output — questions, answers, explanations, summaries, chat messages, task titles, and any other text — must be written in Spanish."
+        )
+    return ""
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +258,7 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[Message]
+    language: str = "en"
 
 
 @app.post("/api/courses/{course_id}/studybuddy/chat")
@@ -266,7 +277,7 @@ If a question is not covered in the slides, say so honestly and help as best you
 
 --- LECTURE CONTENT ---
 {context if context else "No lecture files have been uploaded yet for this course."}
---- END OF LECTURE CONTENT ---"""
+--- END OF LECTURE CONTENT ---{_language_instruction(body.language or "en")}"""
 
     def stream():
         response = openai_client.chat.completions.create(
@@ -329,6 +340,7 @@ async def text_to_speech(course_id: str, body: dict):
 
 class FlashcardRequest(BaseModel):
     filename: str
+    language: str = "en"
 
 
 @app.post("/api/courses/{course_id}/studybuddy/flashcards")
@@ -360,6 +372,7 @@ def generate_flashcards(course_id: str, body: FlashcardRequest):
     else:
         raise HTTPException(status_code=400, detail="Unsupported file type for flashcard generation")
 
+    lang_inst = _language_instruction(body.language or "en")
     response = openai_client.chat.completions.create(
         model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
         max_tokens=2048,
@@ -370,6 +383,7 @@ def generate_flashcards(course_id: str, body: FlashcardRequest):
                     "You are a study aid that creates educational flashcards. "
                     "Always respond with ONLY a valid JSON array, no markdown code fences, no extra text. "
                     'Format: [{"question": "...", "answer": "..."}, ...]'
+                    + lang_inst
                 ),
             },
             {
@@ -408,6 +422,7 @@ def generate_flashcards(course_id: str, body: FlashcardRequest):
 
 class LearningMapRequest(BaseModel):
     filename: str
+    language: str = "en"
 
 
 def _extract_file_text(course: dict, filename: str) -> str:
@@ -437,6 +452,7 @@ def generate_learning_map(course_id: str, body: LearningMapRequest):
         raise HTTPException(status_code=404, detail="Course not found")
 
     text = _extract_file_text(course, body.filename)
+    lang_inst = _language_instruction(body.language or "en")
 
     response = openai_client.chat.completions.create(
         model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
@@ -452,6 +468,7 @@ def generate_learning_map(course_id: str, body: LearningMapRequest):
                     "Make each title concise (max 6 words). "
                     "Make each description one clear sentence explaining what the student will learn. "
                     "Include 3–5 specific keyPoints per chunk that name the exact concepts covered."
+                    + lang_inst
                 ),
             },
             {
@@ -573,6 +590,7 @@ class ChunkActionRequest(BaseModel):
     chunkTitle: str
     chunkDescription: str
     keyPoints: list[str]
+    language: str = "en"
 
 
 @app.post("/api/courses/{course_id}/studybuddy/chunk-action")
@@ -587,6 +605,7 @@ def chunk_action(course_id: str, body: ChunkActionRequest):
 
     text = _extract_file_text(course, body.filename)
     key_points_str = "\n".join(f"- {kp}" for kp in body.keyPoints)
+    lang_inst = _language_instruction(body.language or "en")
 
     if body.action == "summarize":
         system_msg = (
@@ -594,6 +613,7 @@ def chunk_action(course_id: str, body: ChunkActionRequest):
             "Use simple language. Structure the summary with a short intro paragraph, then cover each key point "
             "in depth with examples where helpful. End with a 1-sentence takeaway. "
             "Format using plain text with clear paragraph breaks — no markdown headings."
+            + lang_inst
         )
         user_msg = (
             f"Write a comprehensive study summary for the topic: '{body.chunkTitle}'\n"
@@ -610,6 +630,7 @@ def chunk_action(course_id: str, body: ChunkActionRequest):
             "VISUAL: [What appears on screen — diagrams, animations, text]\n"
             "NARRATION: [Exact words the narrator speaks]\n"
             "Keep narration conversational and engaging. End with a recap scene."
+            + lang_inst
         )
         user_msg = (
             f"Write a video script for: '{body.chunkTitle}'\n"
@@ -640,6 +661,7 @@ async def generate_video_endpoint(course_id: str, body: ChunkActionRequest):
 
     text = _extract_file_text(course, body.filename)
     key_points_str = "\n".join(f"- {kp}" for kp in body.keyPoints)
+    lang_inst = _language_instruction(body.language or "en")
 
     system_msg = (
         "You are an expert educational video scriptwriter. Write a thorough, deeply explanatory script "
@@ -656,6 +678,7 @@ async def generate_video_endpoint(course_id: str, body: ChunkActionRequest):
         "- Each scene covers ONE idea deeply, not multiple ideas superficially\n"
         "- End with a 'Recap' scene that ties everything together\n"
         "- Do not use markdown, bullet points, or headers inside NARRATION"
+        + lang_inst
     )
     user_msg = (
         f"Write a detailed, comprehensive video script for: '{body.chunkTitle}'\n"
@@ -701,6 +724,7 @@ async def generate_video_endpoint(course_id: str, body: ChunkActionRequest):
 
 class MCQRequest(BaseModel):
     filename: str
+    language: str = "en"
 
 
 @app.post("/api/courses/{course_id}/studybuddy/mcq")
@@ -731,6 +755,7 @@ def generate_mcq(course_id: str, body: MCQRequest):
     else:
         raise HTTPException(status_code=400, detail="Unsupported file type for MCQ generation")
 
+    lang_inst = _language_instruction(body.language or "en")
     response = openai_client.chat.completions.create(
         model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
         max_tokens=4096,
@@ -747,6 +772,7 @@ def generate_mcq(course_id: str, body: MCQRequest):
                     "(e.g. 'A* Search — role of the heuristic function h(n) and admissibility', "
                     "'Dynamic Programming — overlapping subproblems and memoization vs tabulation'). "
                     "The topic must be precise enough that a student knows exactly what to revise."
+                    + lang_inst
                 ),
             },
             {
@@ -902,7 +928,7 @@ Always encourage independent thinking. If a student asks you to "just write the 
 
 --- ASSIGNMENT DOCUMENT ---
 {assignment_text}
---- END ASSIGNMENT DOCUMENT ---"""
+--- END ASSIGNMENT DOCUMENT ---{_language_instruction(body.language or "en")}"""
 
     def stream():
         response = openai_client.chat.completions.create(
@@ -937,14 +963,20 @@ Always encourage independent thinking. If a student asks you to "just write the 
 # Assignment Breakdown endpoint (AI-generated subtask list)
 # ---------------------------------------------------------------------------
 
+class AssignmentBreakdownRequest(BaseModel):
+    language: str = "en"
+
+
 @app.post("/api/courses/{course_id}/assignments/{filename}/breakdown")
-def assignment_breakdown(course_id: str, filename: str):
+def assignment_breakdown(course_id: str, filename: str, body: AssignmentBreakdownRequest | None = Body(None)):
     courses = load_courses()
     course = next((c for c in courses if c["id"] == course_id), None)
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
     assignment_text = extract_assignment_text(course, filename)
+    lang = body.language if body else "en"
+    lang_inst = _language_instruction(lang)
 
     response = openai_client.chat.completions.create(
         model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
@@ -978,6 +1010,7 @@ def assignment_breakdown(course_id: str, filename: str):
                     "- Do NOT bundle multiple major components into one task.\n\n"
                     "Always respond with ONLY a valid JSON array, no markdown, no extra text.\n"
                     'Format: [{"id": "1", "title": "...", "description": "...", "estimatedHours": 1.5}, ...]'
+                    + lang_inst
                 ),
             },
             {
