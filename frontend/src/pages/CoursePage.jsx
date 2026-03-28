@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function FileTypeCard({ title, description, icon, color, onClick }) {
@@ -43,6 +44,7 @@ const StudyBuddyIcon = () => (
 export default function CoursePage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [course, setCourse] = useState(null)
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function CoursePage() {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-400 mb-2">
         <button onClick={() => navigate('/dashboard')} className="hover:text-gray-600 hover:underline">
-          Dashboard
+          {t('nav.dashboard')}
         </button>
         <span className="mx-2">/</span>
         <span className="text-gray-600 font-medium">{course.name}</span>
@@ -84,15 +86,15 @@ export default function CoursePage() {
       {/* Cards */}
       <div className="flex gap-6 flex-wrap">
         <FileTypeCard
-          title="Lecture Slides"
-          description="View lecture presentations and notes"
+          title={t('course.lectureSlides')}
+          description={t('course.lectureSlidesDesc')}
           color={course.color}
           icon={<LectureIcon />}
           onClick={() => navigate(`/course/${courseId}/lectures`)}
         />
         <FileTypeCard
-          title="Assignments"
-          description="View and access assignment files"
+          title={t('course.assignments')}
+          description={t('course.assignmentsDesc')}
           color={course.color}
           icon={<AssignmentIcon />}
           onClick={() => navigate(`/course/${courseId}/assignments`)}

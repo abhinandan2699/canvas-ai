@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function stripExtension(filename) {
@@ -62,6 +63,7 @@ const HistoryIcon = () => (
 export default function LecturePage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [course, setCourse] = useState(null)
   const [progress, setProgress] = useState(null)
 
@@ -84,13 +86,13 @@ export default function LecturePage() {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-400 mb-2 flex items-center gap-1.5 flex-wrap">
         <button onClick={() => navigate('/dashboard')}
-                className="hover:text-gray-600 hover:underline">Dashboard</button>
+                className="hover:text-gray-600 hover:underline">{t('nav.dashboard')}</button>
         <span>/</span>
         <button onClick={() => navigate(`/course/${courseId}`)}
                 className="hover:text-gray-600 hover:underline">{course?.name}</button>
         <span>/</span>
         <button onClick={() => navigate(`/course/${courseId}/lectures`)}
-                className="hover:text-gray-600 hover:underline">Lecture Slides</button>
+                className="hover:text-gray-600 hover:underline">{t('lectures.title')}</button>
         <span>/</span>
         <span className="text-gray-600 font-medium truncate max-w-xs">{stripExtension(filename)}</span>
       </nav>
@@ -105,7 +107,7 @@ export default function LecturePage() {
       {progress && (
         <div className="mb-8 max-w-sm">
           <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>MCQ Progress — Best: {progress.bestScore}/{progress.totalQuestions}</span>
+            <span>{t('lectures.mcqProgress')}: {progress.bestScore}/{progress.totalQuestions}</span>
             <span className="font-semibold">{pct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-2">
@@ -117,43 +119,43 @@ export default function LecturePage() {
               }}
             />
           </div>
-          <p className="text-xs text-gray-400 mt-1">{progress.attempts} attempt{progress.attempts !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-gray-400 mt-1">{t('lectures.attempt', { count: progress.attempts })}</p>
         </div>
       )}
 
       {/* Option cards */}
       <div className="flex gap-6 flex-wrap">
         <OptionCard
-          title="Flashcards"
-          description="Review key concepts with AI-generated flashcards"
+          title={t('lectures.flashcards')}
+          description={t('lectures.flashcardsDesc')}
           color="#d97706"
           icon={<FlashcardsIcon />}
           onClick={() => navigate(`/course/${courseId}/lectures/${encodeURIComponent(filename)}/flashcards`)}
         />
         <OptionCard
-          title="Take MCQ"
-          description="Test your knowledge with a generated quiz"
+          title={t('lectures.takeMcq')}
+          description={t('lectures.takeMcqDesc')}
           color="#16a34a"
           icon={<MCQIcon />}
           onClick={() => navigate(`/course/${courseId}/lectures/${encodeURIComponent(filename)}/mcq`)}
         />
         <OptionCard
-          title="Chat"
-          description="Ask questions about this lecture with AI"
+          title={t('lectures.chat')}
+          description={t('lectures.chatDesc')}
           color="#522D80"
           icon={<ChatIcon />}
           onClick={() => navigate(`/course/${courseId}/studybuddy`)}
         />
         <OptionCard
-          title="Learning Map"
-          description="Break the lecture into bite-sized topics to study"
+          title={t('lectures.learningMap')}
+          description={t('lectures.learningMapDesc')}
           color="#0f766e"
           icon={<MapIcon />}
           onClick={() => navigate(`/course/${courseId}/lectures/${encodeURIComponent(filename)}/map`)}
         />
         <OptionCard
-          title="Score History"
-          description="View past attempts and your weak areas"
+          title={t('lectures.scoreHistory')}
+          description={t('lectures.scoreHistoryDesc')}
           color="#0369a1"
           icon={<HistoryIcon />}
           onClick={() => navigate(`/course/${courseId}/lectures/${encodeURIComponent(filename)}/history`)}

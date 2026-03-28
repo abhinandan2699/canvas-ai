@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import i18n from '../i18n'
 
 function stripExtension(filename) {
   const idx = filename.lastIndexOf('.')
   return idx > 0 ? filename.slice(0, idx) : filename
 }
 
-function FlipCard({ card, isFlipped, onFlip }) {
+function FlipCard({ card, isFlipped, onFlip, t }) {
   return (
     <div
       className="cursor-pointer select-none"
@@ -30,9 +32,9 @@ function FlipCard({ card, isFlipped, onFlip }) {
           className="absolute inset-0 bg-white rounded-xl border-2 border-purple-100 p-4 flex flex-col items-center justify-center shadow-sm hover:shadow-md hover:border-purple-300 transition-shadow overflow-y-auto"
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
         >
-          <span className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-3">Question</span>
+          <span className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-3">{t('studybuddy.question')}</span>
           <p className="text-sm text-gray-800 text-center font-medium leading-relaxed">{card.question}</p>
-          <span className="text-xs text-gray-300 mt-4">tap to reveal</span>
+          <span className="text-xs text-gray-300 mt-4">{t('studybuddy.tapToReveal')}</span>
         </div>
         {/* Back */}
         <div
@@ -43,7 +45,7 @@ function FlipCard({ card, isFlipped, onFlip }) {
             transform: 'rotateY(180deg)',
           }}
         >
-          <span className="text-xs text-purple-200 font-semibold uppercase tracking-wider mb-3">Answer</span>
+          <span className="text-xs text-purple-200 font-semibold uppercase tracking-wider mb-3">{t('studybuddy.answer')}</span>
           <p className="text-sm text-white text-center leading-relaxed">{card.answer}</p>
         </div>
       </div>
@@ -54,6 +56,7 @@ function FlipCard({ card, isFlipped, onFlip }) {
 export default function FlashcardsPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const [flashcards, setFlashcards] = useState([])
   const [flippedCards, setFlippedCards] = useState(new Set())
@@ -70,10 +73,10 @@ export default function FlashcardsPage() {
     setFlippedCards(new Set())
     setError(null)
     try {
-      const { data } = await axios.post(`/api/courses/${courseId}/studybuddy/flashcards`, { filename })
+      const { data } = await axios.post(`/api/courses/${courseId}/studybuddy/flashcards`, { filename, language: i18n.language || 'en' })
       setFlashcards(data.flashcards)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to generate flashcards. Please try again.')
+      setError(err.response?.data?.detail || t('flashcards.failed'))
     } finally {
       setIsGenerating(false)
     }
@@ -102,31 +105,31 @@ export default function FlashcardsPage() {
             </svg>
           </button>
           <div>
-            <p className="text-xs text-gray-400 leading-none">Flashcards</p>
+            <p className="text-xs text-gray-400 leading-none">{t('flashcards.title')}</p>
             <p className="text-sm font-semibold text-gray-700">{stripExtension(filename)}</p>
           </div>
         </div>
 
         {flashcards.length > 0 && (
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-400">{flashcards.length} cards</span>
+            <span className="text-xs text-gray-400">{t('flashcards.cards', { count: flashcards.length })}</span>
             <button
               onClick={() => setFlippedCards(new Set())}
               className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              Reset
+              {t('flashcards.reset')}
             </button>
             <button
               onClick={() => setFlippedCards(new Set(flashcards.map((_, i) => i)))}
               className="px-3 py-1.5 text-xs bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors"
             >
-              Reveal All
+              {t('flashcards.revealAll')}
             </button>
             <button
               onClick={generate}
               className="px-3 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              Regenerate
+              {t('flashcards.regenerate')}
             </button>
           </div>
         )}
@@ -137,7 +140,7 @@ export default function FlashcardsPage() {
         {isGenerating && (
           <div className="flex flex-col items-center justify-center h-full gap-4">
             <div className="w-10 h-10 border-4 border-purple-200 border-t-purple-700 rounded-full animate-spin" />
-            <p className="text-gray-500 text-sm">Generating flashcards…</p>
+            <p className="text-gray-500 text-sm">{t('flashcards.generating')}</p>
           </div>
         )}
 
@@ -148,7 +151,7 @@ export default function FlashcardsPage() {
               onClick={generate}
               className="px-5 py-2 bg-purple-700 text-white text-sm font-medium rounded-lg hover:bg-purple-800 transition-colors"
             >
-              Try Again
+              {t('flashcards.tryAgain')}
             </button>
           </div>
         )}
@@ -162,6 +165,7 @@ export default function FlashcardsPage() {
                   card={card}
                   isFlipped={flippedCards.has(i)}
                   onFlip={() => toggleCard(i)}
+                  t={t}
                 />
               ))}
             </div>

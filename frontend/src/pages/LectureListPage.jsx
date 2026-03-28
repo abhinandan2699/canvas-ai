@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function stripExtension(filename) {
@@ -22,6 +23,7 @@ function ProgressBar({ pct }) {
 }
 
 function LectureCard({ filename, progress, courseColor, onClick }) {
+  const { t } = useTranslation()
   const title = stripExtension(filename)
   const pct = progress
     ? Math.round((progress.bestScore / progress.totalQuestions) * 100)
@@ -52,7 +54,7 @@ function LectureCard({ filename, progress, courseColor, onClick }) {
 
         <div className="mt-4">
           <div className="flex justify-between items-center text-xs text-gray-500">
-            <span>{attempted ? `Best: ${progress.bestScore}/${progress.totalQuestions}` : 'Not started'}</span>
+            <span>{attempted ? `${t('lectures.best')}: ${progress.bestScore}/${progress.totalQuestions}` : t('lectures.notStarted')}</span>
             <span className="font-medium" style={{ color: pct === 0 ? '#9ca3af' : pct < 50 ? '#f59e0b' : pct < 80 ? '#3b82f6' : '#22c55e' }}>
               {attempted ? `${pct}%` : '—'}
             </span>
@@ -60,7 +62,7 @@ function LectureCard({ filename, progress, courseColor, onClick }) {
           <ProgressBar pct={pct} />
           {attempted && (
             <p className="text-xs text-gray-400 mt-1.5">
-              {progress.attempts} attempt{progress.attempts !== 1 ? 's' : ''}
+              {t('lectures.attempt', { count: progress.attempts })}
             </p>
           )}
         </div>
@@ -72,6 +74,7 @@ function LectureCard({ filename, progress, courseColor, onClick }) {
 export default function LectureListPage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [course, setCourse] = useState(null)
   const [files, setFiles] = useState([])
   const [progress, setProgress] = useState({})
@@ -112,17 +115,17 @@ export default function LectureListPage() {
       {/* Breadcrumb */}
       <nav className="text-sm text-gray-400 mb-2 flex items-center gap-1.5">
         <button onClick={() => navigate('/dashboard')}
-                className="hover:text-gray-600 hover:underline">Dashboard</button>
+                className="hover:text-gray-600 hover:underline">{t('nav.dashboard')}</button>
         <span>/</span>
         <button onClick={() => navigate(`/course/${courseId}`)}
                 className="hover:text-gray-600 hover:underline">{course?.name}</button>
         <span>/</span>
-        <span className="text-gray-600 font-medium">Lecture Slides</span>
+        <span className="text-gray-600 font-medium">{t('lectures.title')}</span>
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Lecture Slides</h1>
-        <p className="text-gray-500 mt-1">{files.length} lecture{files.length !== 1 ? 's' : ''} · Click one to study</p>
+        <h1 className="text-3xl font-bold text-gray-800">{t('lectures.title')}</h1>
+        <p className="text-gray-500 mt-1">{t('lectures.countClick', { count: files.length })}</p>
       </div>
 
       {files.length === 0 ? (
@@ -132,7 +135,7 @@ export default function LectureListPage() {
             <path strokeLinecap="round" strokeLinejoin="round"
               d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
           </svg>
-          <p>No lecture files yet</p>
+          <p>{t('lectures.noFiles')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

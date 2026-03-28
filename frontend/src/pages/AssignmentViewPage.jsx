@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function stripExtension(filename) {
@@ -28,15 +29,15 @@ export default function AssignmentViewPage() {
       <div className="px-5 py-3 bg-white border-b border-gray-200 flex items-center gap-3 flex-shrink-0">
         <div>
           <nav className="text-xs text-gray-400 flex items-center gap-1 flex-wrap">
-            <button onClick={() => navigate('/dashboard')} className="hover:text-gray-600">Dashboard</button>
+            <button onClick={() => navigate('/dashboard')} className="hover:text-gray-600">{t('nav.dashboard')}</button>
             <span>/</span>
             <button onClick={() => navigate(`/course/${courseId}`)} className="hover:text-gray-600">{course?.name}</button>
             <span>/</span>
-            <button onClick={() => navigate(`/course/${courseId}/assignments`)} className="hover:text-gray-600">Assignments</button>
+            <button onClick={() => navigate(`/course/${courseId}/assignments`)} className="hover:text-gray-600">{t('assignments.title')}</button>
             <span>/</span>
             <button onClick={() => navigate(`/course/${courseId}/assignments/${encodeURIComponent(filename)}`)} className="hover:text-gray-600">{title}</button>
             <span>/</span>
-            <span className="text-gray-600 font-medium">View</span>
+            <span className="text-gray-600 font-medium">{t('assignments.view')}</span>
           </nav>
           <h3 className="font-semibold text-gray-800 text-sm mt-0.5">{title}</h3>
         </div>
@@ -48,7 +49,7 @@ export default function AssignmentViewPage() {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
           </svg>
-          Download
+          {t('assignments.download')}
         </a>
       </div>
 

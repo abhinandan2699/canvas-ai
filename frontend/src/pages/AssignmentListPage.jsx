@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function stripExtension(filename) {
@@ -7,7 +8,7 @@ function stripExtension(filename) {
   return idx > 0 ? filename.slice(0, idx) : filename
 }
 
-function AssignmentCard({ filename, courseColor, onClick }) {
+function AssignmentCard({ filename, courseColor, onClick, t }) {
   const title = stripExtension(filename).replace(/_/g, ' ')
   const ext = filename.split('.').pop().toUpperCase()
 
@@ -30,17 +31,17 @@ function AssignmentCard({ filename, courseColor, onClick }) {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-gray-800 text-sm leading-snug line-clamp-2">{title}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{ext} file</p>
+            <p className="text-xs text-gray-400 mt-0.5">{ext} {t('assignments.file')}</p>
           </div>
         </div>
 
         <div className="mt-4 flex items-center gap-2">
           <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                 style={{ backgroundColor: courseColor + '15', color: courseColor }}>
-            Chat with AI
+            {t('assignments.chatWithAi')}
           </span>
           <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600">
-            Task Tracker
+            {t('assignments.taskTracker')}
           </span>
         </div>
       </div>
@@ -51,6 +52,7 @@ function AssignmentCard({ filename, courseColor, onClick }) {
 export default function AssignmentListPage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [course, setCourse] = useState(null)
   const [files, setFiles] = useState([])
   const [loading, setLoading] = useState(true)
@@ -82,18 +84,18 @@ export default function AssignmentListPage() {
     <div className="p-8">
       <nav className="text-sm text-gray-400 mb-2 flex items-center gap-1.5">
         <button onClick={() => navigate('/dashboard')}
-                className="hover:text-gray-600 hover:underline">Dashboard</button>
+                className="hover:text-gray-600 hover:underline">{t('nav.dashboard')}</button>
         <span>/</span>
         <button onClick={() => navigate(`/course/${courseId}`)}
                 className="hover:text-gray-600 hover:underline">{course?.name}</button>
         <span>/</span>
-        <span className="text-gray-600 font-medium">Assignments</span>
+        <span className="text-gray-600 font-medium">{t('assignments.title')}</span>
       </nav>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Assignments</h1>
+        <h1 className="text-3xl font-bold text-gray-800">{t('assignments.title')}</h1>
         <p className="text-gray-500 mt-1">
-          {files.length} assignment{files.length !== 1 ? 's' : ''} · Click one to get started
+          {t('assignments.countClick', { count: files.length })}
         </p>
       </div>
 
@@ -104,7 +106,7 @@ export default function AssignmentListPage() {
             <path strokeLinecap="round" strokeLinejoin="round"
               d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L6.832 19.82a4.5 4.5 0 0 1-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Z" />
           </svg>
-          <p>No assignment files yet</p>
+          <p>{t('assignments.noFiles')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -114,6 +116,7 @@ export default function AssignmentListPage() {
               filename={filename}
               courseColor={course?.color || '#3b82f6'}
               onClick={() => navigate(`/course/${courseId}/assignments/${encodeURIComponent(filename)}`)}
+              t={t}
             />
           ))}
         </div>

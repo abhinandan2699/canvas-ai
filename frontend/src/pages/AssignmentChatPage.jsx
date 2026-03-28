@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
+import i18n from '../i18n'
 
 function stripExtension(filename) {
   const idx = filename.lastIndexOf('.')
   return idx > 0 ? filename.slice(0, idx) : filename
-}
-
-const WELCOME = {
-  role: 'assistant',
-  content: "Hi! I'm AssignmentHelper. I've read this assignment and I'm here to help you understand the requirements, clarify the rubric, and talk through concepts.\n\n**Note:** I won't write code or solve the assignment for you — that's your job. But I'll help you get there.",
 }
 
 // ── Icons ──────────────────────────────────────────────────────────────────
@@ -111,7 +108,7 @@ function formatHours(h) {
   return mins === 0 ? `${hrs}h` : `${hrs}h ${mins}m`
 }
 
-function TrackerSidebar({ courseId, filename }) {
+function TrackerSidebar({ courseId, filename, t }) {
   const [tasks, setTasks] = useState(null)
   const [generating, setGenerating] = useState(false)
   const [loaded, setLoaded] = useState(false)
@@ -129,7 +126,8 @@ function TrackerSidebar({ courseId, filename }) {
     setGenerating(true)
     try {
       const { data } = await axios.post(
-        `/api/courses/${courseId}/assignments/${encodeURIComponent(filename)}/breakdown`
+        `/api/courses/${courseId}/assignments/${encodeURIComponent(filename)}/breakdown`,
+        { language: i18n.language || 'en' }
       )
       setTasks(data.tasks)
       await saveTasks(data.tasks)
@@ -175,13 +173,13 @@ function TrackerSidebar({ courseId, filename }) {
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
         <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
           <SparklesIcon />
-          Task Tracker
+          {t('assignments.trackerTitle')}
         </div>
         <button
           onClick={generate}
           disabled={generating}
           className="text-gray-400 hover:text-blue-500 transition-colors disabled:opacity-40"
-          title="Regenerate tasks"
+          title={t('assignments.regenerateTasks')}
         >
           <RefreshIcon />
         </button>
@@ -191,7 +189,7 @@ function TrackerSidebar({ courseId, filename }) {
       {tasks && tasks.length > 0 && (
         <div className="px-4 py-3 border-b border-gray-100">
           <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-gray-500">{done}/{total} tasks</span>
+            <span className="text-gray-500">{t('assignments.tasksDone', { done, total })}</span>
             <span className="font-semibold" style={{ color: progressColor }}>{pct}%</span>
           </div>
           <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
@@ -204,8 +202,8 @@ function TrackerSidebar({ courseId, filename }) {
             <ClockIcon />
             <span>
               {pct === 100
-                ? 'All done!'
-                : `~${formatHours(etc)} remaining`}
+                ? t('assignments.allDone')
+                : t('assignments.remaining', { time: formatHours(etc) })}
             </span>
           </div>
         </div>
@@ -216,19 +214,19 @@ function TrackerSidebar({ courseId, filename }) {
         {generating && (
           <div className="flex flex-col items-center justify-center py-10 gap-2 text-gray-400">
             <SpinnerIcon />
-            <p className="text-xs">Generating tasks…</p>
+            <p className="text-xs">{t('assignments.generatingTasks')}</p>
           </div>
         )}
 
         {!generating && loaded && (!tasks || tasks.length === 0) && (
           <div className="flex flex-col items-center justify-center py-10 gap-3 text-gray-400">
-            <p className="text-xs text-center px-4">No tasks yet</p>
+            <p className="text-xs text-center px-4">{t('assignments.noTasks')}</p>
             <button
               onClick={generate}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 transition-colors"
             >
               <SparklesIcon />
-              Generate
+              {t('assignments.generate')}
             </button>
           </div>
         )}
@@ -270,29 +268,22 @@ function TrackerSidebar({ courseId, filename }) {
   )
 }
 
-// ── Quick prompts ────────────────────────────────────────────────────────────
-
-const QUICK_PROMPTS = [
-  "What are the main deliverables?",
-  "Explain the grading rubric",
-  "What does Part 1 require?",
-  "How should I approach this?",
-  "What resources should I use?",
-  "What is the late policy?",
-]
+// Quick prompts are translated in the component via t('assignments.prompt1') etc.
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function AssignmentChatPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [course, setCourse] = useState(null)
-  const [messages, setMessages] = useState([WELCOME])
+  const [messages, setMessages] = useState(() => [{ role: 'assistant', content: i18n.t('assignments.welcome') }])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const bottomRef = useRef(null)
 
   const title = stripExtension(filename).replace(/_/g, ' ')
+  const quickPrompts = [t('assignments.prompt1'), t('assignments.prompt2'), t('assignments.prompt3'), t('assignments.prompt4'), t('assignments.prompt5'), t('assignments.prompt6')]
 
   useEffect(() => {
     axios.get('/api/courses').then(res => {
@@ -323,6 +314,7 @@ export default function AssignmentChatPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
+            language: i18n.language || 'en',
           }),
         }
       )
@@ -361,7 +353,7 @@ export default function AssignmentChatPage() {
         const updated = [...prev]
         updated[updated.length - 1] = {
           role: 'assistant',
-          content: 'Sorry, something went wrong. Please check that the backend is running.',
+          content: t('assignments.chatError'),
         }
         return updated
       })
@@ -388,25 +380,25 @@ export default function AssignmentChatPage() {
           </div>
           <div className="flex-1 min-w-0">
             <nav className="text-xs text-gray-400 flex items-center gap-1 flex-wrap leading-tight">
-              <button onClick={() => navigate('/dashboard')} className="hover:text-gray-600">Dashboard</button>
+              <button onClick={() => navigate('/dashboard')} className="hover:text-gray-600">{t('nav.dashboard')}</button>
               <span>/</span>
               <button onClick={() => navigate(`/course/${courseId}`)} className="hover:text-gray-600">{course?.name}</button>
               <span>/</span>
-              <button onClick={() => navigate(`/course/${courseId}/assignments`)} className="hover:text-gray-600">Assignments</button>
+              <button onClick={() => navigate(`/course/${courseId}/assignments`)} className="hover:text-gray-600">{t('assignments.title')}</button>
               <span>/</span>
               <button onClick={() => navigate(`/course/${courseId}/assignments/${encodeURIComponent(filename)}`)} className="hover:text-gray-600 truncate max-w-[10rem]">{title}</button>
             </nav>
-            <p className="font-semibold text-gray-800 text-sm truncate">Assignment Chat</p>
+            <p className="font-semibold text-gray-800 text-sm truncate">{t('assignments.assignmentChatTitle')}</p>
           </div>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium flex-shrink-0">
             <ShieldIcon />
-            Guardrails active
+            {t('assignments.guardrailsActive')}
           </div>
         </div>
 
         {/* Quick prompts */}
         <div className="px-5 py-2 bg-gray-50 border-b border-gray-100 flex gap-2 overflow-x-auto flex-shrink-0 scrollbar-none">
-          {QUICK_PROMPTS.map(p => (
+          {quickPrompts.map(p => (
             <button
               key={p}
               onClick={() => sendMessage(p)}
@@ -433,7 +425,7 @@ export default function AssignmentChatPage() {
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask about deliverables, rubric, concepts… (Enter to send)"
+              placeholder={t('assignments.placeholder')}
               rows={1}
               disabled={isStreaming}
               className="flex-1 resize-none rounded-xl border border-gray-300 px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent disabled:opacity-50 leading-relaxed"
@@ -449,13 +441,13 @@ export default function AssignmentChatPage() {
           </div>
           <p className="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
             <ShieldIcon />
-            Won't write code or solve the assignment directly.
+            {t('assignments.wontSolve')}
           </p>
         </div>
       </div>
 
       {/* ── Tracker sidebar ── */}
-      <TrackerSidebar courseId={courseId} filename={filename} />
+      <TrackerSidebar courseId={courseId} filename={filename} t={t} />
     </div>
   )
 }

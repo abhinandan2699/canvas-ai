@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function getFileIcon(filename) {
@@ -55,14 +56,15 @@ function TextViewer({ fileUrl, filename }) {
   const [content, setContent] = useState(null)
   const [error, setError] = useState(null)
 
+  const { t } = useTranslation()
   useEffect(() => {
     axios.get(fileUrl, { responseType: 'text' })
       .then(res => setContent(res.data))
-      .catch(() => setError('Failed to load file.'))
-  }, [fileUrl])
+      .catch(() => setError(t('fileViewer.failedToLoadFile')))
+  }, [fileUrl, t])
 
   if (error) return <div className="p-6 text-red-500">{error}</div>
-  if (content === null) return <div className="p-6 text-gray-400">Loading...</div>
+  if (content === null) return <div className="p-6 text-gray-400">{t('fileViewer.loading')}</div>
 
   const ext = filename.split('.').pop().toLowerCase()
   const isMarkdown = ext === 'md'
@@ -85,7 +87,8 @@ export default function FileViewerPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const title = fileType === 'lectures' ? 'Lecture Slides' : 'Assignments'
+  const { t } = useTranslation()
+  const title = fileType === 'lectures' ? t('fileViewer.lectureSlides') : t('fileViewer.assignments')
 
   useEffect(() => {
     Promise.all([
@@ -96,7 +99,7 @@ export default function FileViewerPage() {
       setCourse(found || null)
       setFiles(filesRes.data)
       if (filesRes.data.length > 0) setSelectedFile(filesRes.data[0])
-    }).catch(() => setError('Failed to load content.'))
+    }).catch(() => setError(t('fileViewer.failedToLoad')))
       .finally(() => setLoading(false))
   }, [courseId, fileType])
 
@@ -127,7 +130,7 @@ export default function FileViewerPage() {
             onClick={() => navigate(`/course/${courseId}`)}
             className="text-xs text-gray-400 hover:text-gray-600 mb-1 block"
           >
-            ← Back to course
+            {t('fileViewer.backToCourse')}
           </button>
           <h2 className="font-semibold text-gray-800 text-sm">{title}</h2>
           {course && <p className="text-xs text-gray-400 truncate mt-0.5">{course.name}</p>}
@@ -137,9 +140,9 @@ export default function FileViewerPage() {
         <nav className="flex-1 overflow-y-auto py-2">
           {files.length === 0 ? (
             <div className="px-4 py-6 text-center">
-              <p className="text-xs text-gray-400">No files uploaded yet.</p>
+              <p className="text-xs text-gray-400">{t('fileViewer.noFilesUploaded')}</p>
               <p className="text-xs text-gray-300 mt-1">
-                Add files to<br />
+                {t('fileViewer.addFilesTo')}<br />
                 <code className="text-gray-400">backend/courses/{courseId}/{fileType}/</code>
               </p>
             </div>
@@ -180,9 +183,9 @@ export default function FileViewerPage() {
           <div className="flex-1 flex items-center justify-center text-gray-400">
             <div className="text-center">
               <p className="text-5xl mb-4">📂</p>
-              <p className="text-lg font-medium">No files yet</p>
+              <p className="text-lg font-medium">{t('fileViewer.noFilesYet')}</p>
               <p className="text-sm mt-1">
-                Drop files into{' '}
+                {t('fileViewer.dropFilesInto')}{' '}
                 <code className="bg-gray-100 px-1 rounded text-gray-500">
                   backend/courses/{courseId}/{fileType}/
                 </code>

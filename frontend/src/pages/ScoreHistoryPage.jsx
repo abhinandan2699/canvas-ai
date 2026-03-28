@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function stripExtension(filename) {
@@ -20,7 +21,7 @@ function scoreColor(pct) {
 }
 
 // SVG line graph showing score trend across all attempts
-function TrendChart({ history }) {
+function TrendChart({ history, scoreTrendLabel = 'Score Trend' }) {
   if (history.length < 2) return null
 
   const W = 500
@@ -48,7 +49,7 @@ function TrendChart({ history }) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-5 mb-6">
-      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Score Trend</p>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{scoreTrendLabel}</p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 140 }}>
         <defs>
           <linearGradient id="trendGrad" x1="0" y1="0" x2="0" y2="1">
@@ -93,7 +94,7 @@ function TrendChart({ history }) {
   )
 }
 
-function AttemptCard({ attempt, number }) {
+function AttemptCard({ attempt, number, t }) {
   const pct = Math.round((attempt.score / attempt.totalQuestions) * 100)
   const color = scoreColor(pct)
   const [expanded, setExpanded] = useState(false)
@@ -111,13 +112,13 @@ function AttemptCard({ attempt, number }) {
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-sm font-semibold text-gray-800">Attempt #{number}</span>
+            <span className="text-sm font-semibold text-gray-800">{t ? t('scoreHistory.attempt', { number }) : `Attempt #${number}`}</span>
             <span className="text-xs text-gray-400">{formatDate(attempt.date)}</span>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
-            <span>{attempt.score}/{attempt.totalQuestions} correct</span>
+            <span>{t ? t('scoreHistory.correct', { score: attempt.score, total: attempt.totalQuestions }) : `${attempt.score}/${attempt.totalQuestions} correct`}</span>
             {attempt.weakAreas?.length > 0 && (
-              <span className="text-amber-600 font-medium">{attempt.weakAreas.length} weak area{attempt.weakAreas.length !== 1 ? 's' : ''}</span>
+              <span className="text-amber-600 font-medium">{t ? t('scoreHistory.weakAreas', { count: attempt.weakAreas.length }) : `${attempt.weakAreas.length} weak area(s)`}</span>
             )}
           </div>
           {/* Progress bar */}
@@ -143,7 +144,7 @@ function AttemptCard({ attempt, number }) {
       {/* Weak areas */}
       {expanded && attempt.weakAreas?.length > 0 && (
         <div className="border-t border-gray-100 px-4 py-3 bg-amber-50">
-          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">Weak Areas</p>
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">{t ? t('scoreHistory.weakAreasTitle') : 'Weak Areas'}</p>
           <ul className="space-y-1.5">
             {attempt.weakAreas.map((q, i) => (
               <li key={i} className="flex items-start gap-2 text-xs text-amber-800">
@@ -163,6 +164,7 @@ function AttemptCard({ attempt, number }) {
 export default function ScoreHistoryPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [history, setHistory] = useState(null)
   const [bestScore, setBestScore] = useState(null)
 
@@ -206,7 +208,7 @@ export default function ScoreHistoryPage() {
           </svg>
         </button>
         <div>
-          <p className="text-xs text-gray-400 leading-none">Score History</p>
+          <p className="text-xs text-gray-400 leading-none">{t('scoreHistory.title')}</p>
           <p className="text-sm font-semibold text-gray-700">{stripExtension(filename)}</p>
         </div>
       </div>
@@ -227,14 +229,14 @@ export default function ScoreHistoryPage() {
               </svg>
             </div>
             <div>
-              <p className="font-semibold text-gray-700">No attempts yet</p>
-              <p className="text-sm text-gray-400 mt-1">Take an MCQ to start tracking your progress</p>
+              <p className="font-semibold text-gray-700">{t('scoreHistory.noAttempts')}</p>
+              <p className="text-sm text-gray-400 mt-1">{t('scoreHistory.noAttemptsDesc')}</p>
             </div>
             <button
               onClick={() => navigate(`/course/${courseId}/lectures/${encodeURIComponent(filename)}/mcq`)}
               className="px-5 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 transition-colors"
             >
-              Take MCQ
+              {t('scoreHistory.takeMcq')}
             </button>
           </div>
         )}
@@ -245,30 +247,30 @@ export default function ScoreHistoryPage() {
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
                 <p className="text-2xl font-bold text-gray-800">{history.length}</p>
-                <p className="text-xs text-gray-400 mt-0.5">Attempts</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('scoreHistory.attempts')}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
                 <p className="text-2xl font-bold" style={{ color: scoreColor(bestScore ? Math.round(bestScore.score / bestScore.total * 100) : 0) }}>
                   {bestScore ? Math.round(bestScore.score / bestScore.total * 100) : 0}%
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">Best Score</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('scoreHistory.bestScore')}</p>
               </div>
               <div className="bg-white rounded-xl border border-gray-100 p-4 text-center">
                 <p className="text-2xl font-bold text-gray-800">
                   {Math.round(history.reduce((sum, h) => sum + (h.score / h.totalQuestions) * 100, 0) / history.length)}%
                 </p>
-                <p className="text-xs text-gray-400 mt-0.5">Average</p>
+                <p className="text-xs text-gray-400 mt-0.5">{t('scoreHistory.average')}</p>
               </div>
             </div>
 
             {/* Trend chart */}
-            <TrendChart history={history} />
+            <TrendChart history={history} scoreTrendLabel={t('scoreHistory.scoreTrend')} />
 
             {/* Persistent weak areas */}
             {topWeakAreas.length > 0 && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
                 <p className="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-3">
-                  Areas to Focus On
+                  {t('scoreHistory.areasToFocus')}
                 </p>
                 <ul className="space-y-2">
                   {topWeakAreas.map(([question, count], i) => (
@@ -285,13 +287,14 @@ export default function ScoreHistoryPage() {
 
             {/* Attempt list (newest first) */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">All Attempts</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('scoreHistory.allAttempts')}</p>
               <div className="space-y-3">
                 {[...history].reverse().map((attempt, i) => (
                   <AttemptCard
                     key={i}
                     attempt={attempt}
                     number={history.length - i}
+                    t={t}
                   />
                 ))}
               </div>

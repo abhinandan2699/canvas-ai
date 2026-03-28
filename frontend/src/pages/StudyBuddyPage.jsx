@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
-
-const WELCOME = { role: 'assistant', content: "Hi! I'm StudyBuddy. I've read all your lecture slides and I'm ready to help. Ask me anything about the course!" }
+import i18n from '../i18n'
 
 // ---- Icons ----
 function SendIcon() {
@@ -114,6 +114,7 @@ function Message({ msg }) {
 
 // ---- Flip Card ----
 function FlipCard({ card, isFlipped, onFlip }) {
+  const { t } = useTranslation()
   return (
     <div
       className="cursor-pointer select-none"
@@ -136,9 +137,9 @@ function FlipCard({ card, isFlipped, onFlip }) {
           className="absolute inset-0 bg-white rounded-xl border-2 border-purple-100 p-4 flex flex-col items-center justify-center shadow-sm hover:shadow-md hover:border-purple-300 transition-shadow overflow-y-auto"
           style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
         >
-          <span className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-3">Question</span>
+          <span className="text-xs text-purple-400 font-semibold uppercase tracking-wider mb-3">{t('studybuddy.question')}</span>
           <p className="text-sm text-gray-800 text-center font-medium leading-relaxed">{card.question}</p>
-          <span className="text-xs text-gray-300 mt-4">tap to reveal</span>
+          <span className="text-xs text-gray-300 mt-4">{t('studybuddy.tapToReveal')}</span>
         </div>
         {/* Back — Answer */}
         <div
@@ -149,7 +150,7 @@ function FlipCard({ card, isFlipped, onFlip }) {
             transform: 'rotateY(180deg)',
           }}
         >
-          <span className="text-xs text-purple-200 font-semibold uppercase tracking-wider mb-3">Answer</span>
+          <span className="text-xs text-purple-200 font-semibold uppercase tracking-wider mb-3">{t('studybuddy.answer')}</span>
           <p className="text-sm text-white text-center leading-relaxed">{card.answer}</p>
         </div>
       </div>
@@ -162,6 +163,7 @@ export default function StudyBuddyPage() {
   const { courseId } = useParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useTranslation()
   const routeState = location.state || {}
   const [course, setCourse] = useState(null)
   const [activeTab, setActiveTab] = useState(routeState.tab === 'flashcards' ? 'flashcards' : 'chat')
@@ -169,7 +171,7 @@ export default function StudyBuddyPage() {
   // Chat state
   const [conversations, setConversations] = useState([])
   const [activeConvId, setActiveConvId] = useState(null)
-  const [messages, setMessages] = useState([WELCOME])
+  const [messages, setMessages] = useState(() => [{ role: 'assistant', content: i18n.t('studybuddy.welcome') }])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
@@ -214,14 +216,14 @@ export default function StudyBuddyPage() {
   // ---- Chat functions ----
   function startNewChat() {
     setActiveConvId(null)
-    setMessages([WELCOME])
+    setMessages([{ role: 'assistant', content: t('studybuddy.welcome') }])
     setInput('')
   }
 
   async function loadConversation(conv) {
     const { data } = await axios.get(`/api/courses/${courseId}/conversations/${conv.id}`)
     setActiveConvId(data.id)
-    setMessages([WELCOME, ...data.messages])
+    setMessages([{ role: 'assistant', content: t('studybuddy.welcome') }, ...data.messages])
   }
 
   async function deleteConversation(e, convId) {
@@ -253,7 +255,8 @@ export default function StudyBuddyPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: updatedMessages.map(m => ({ role: m.role, content: m.content }))
+          messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
+          language: i18n.language || 'en',
         }),
       })
 
@@ -283,10 +286,10 @@ export default function StudyBuddyPage() {
       }
 
       const finalMessages = [...updatedMessages, { role: 'assistant', content: accumulated }]
-      setMessages([WELCOME, ...finalMessages.slice(1)])
+      setMessages([{ role: 'assistant', content: t('studybuddy.welcome') }, ...finalMessages.slice(1)])
       if (audioMode) speakText(accumulated)
 
-      const toSave = finalMessages.filter(m => m !== WELCOME)
+      const toSave = finalMessages.slice(1)
       const { data: saved } = await axios.post(`/api/courses/${courseId}/conversations`, {
         id: convId,
         title,
@@ -304,7 +307,7 @@ export default function StudyBuddyPage() {
         const updated = [...prev]
         updated[updated.length - 1] = {
           role: 'assistant',
-          content: 'Sorry, something went wrong. Please check that the backend is running and your API key is set.'
+          content: t('studybuddy.chatError')
         }
         return updated
       })
@@ -398,7 +401,7 @@ export default function StudyBuddyPage() {
     setGeneratedFor(filename)
     setFlashcardError(null)
     try {
-      const { data } = await axios.post(`/api/courses/${courseId}/studybuddy/flashcards`, { filename })
+      const { data } = await axios.post(`/api/courses/${courseId}/studybuddy/flashcards`, { filename, language: i18n.language || 'en' })
       setFlashcards(data.flashcards)
     } catch (err) {
       setFlashcardError(err.response?.data?.detail || 'Failed to generate flashcards. Please try again.')
@@ -426,7 +429,7 @@ export default function StudyBuddyPage() {
       <aside className="w-64 flex-shrink-0 bg-white border-r border-gray-200 flex flex-col">
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200" style={{ borderLeftWidth: 4, borderLeftColor: '#522D80' }}>
-          <h2 className="font-semibold text-gray-800 text-sm">StudyBuddy</h2>
+          <h2 className="font-semibold text-gray-800 text-sm">{t('studybuddy.title')}</h2>
           {course && <p className="text-xs text-gray-400 truncate mt-0.5">{course.name}</p>}
         </div>
 
@@ -436,12 +439,12 @@ export default function StudyBuddyPage() {
             className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-medium text-purple-700 border border-purple-200 hover:bg-purple-50 transition-colors"
           >
             <PlusIcon />
-            New Chat
+            {t('studybuddy.newChat')}
           </button>
         </div>
         <nav className="flex-1 overflow-y-auto py-1">
           {conversations.length === 0 ? (
-            <p className="px-4 py-6 text-xs text-gray-400 text-center">No past conversations yet.</p>
+            <p className="px-4 py-6 text-xs text-gray-400 text-center">{t('studybuddy.noPastConversations')}</p>
           ) : (
             conversations.map(conv => (
               <button
@@ -476,11 +479,11 @@ export default function StudyBuddyPage() {
           <div className="px-6 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-purple-700 flex items-center justify-center text-white text-xs font-bold">SB</div>
             <div>
-              <h3 className="font-semibold text-gray-800 text-sm">StudyBuddy Chat</h3>
+              <h3 className="font-semibold text-gray-800 text-sm">{t('studybuddy.chatTitle')}</h3>
               <p className="text-xs text-gray-400">
                 {activeConvId
-                  ? conversations.find(c => c.id === activeConvId)?.title || 'Conversation'
-                  : 'New conversation'}
+                  ? conversations.find(c => c.id === activeConvId)?.title || t('studybuddy.conversation')
+                  : t('studybuddy.newConversation')}
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
@@ -490,7 +493,7 @@ export default function StudyBuddyPage() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4Z" />
                   </svg>
-                  <span>Loading audio…</span>
+                  <span>{t('studybuddy.loadingAudio')}</span>
                 </div>
               )}
               {isPlaying && (
@@ -504,7 +507,7 @@ export default function StudyBuddyPage() {
                   </div>
                   <button
                     onClick={stopAudio}
-                    title="Stop audio"
+                    title={t('studybuddy.stopAudio')}
                     className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-100 text-red-500 hover:bg-red-200 transition-colors"
                   >
                     <StopIcon />
@@ -513,7 +516,7 @@ export default function StudyBuddyPage() {
               )}
               <button
                 onClick={() => setAudioMode(prev => !prev)}
-                title={audioMode ? 'Disable audio responses' : 'Enable audio responses'}
+                title={audioMode ? t('studybuddy.disableAudio') : t('studybuddy.enableAudio')}
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
                   audioMode ? 'bg-purple-700 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                 }`}
@@ -536,7 +539,7 @@ export default function StudyBuddyPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask anything about the lecture slides… (Enter to send, Shift+Enter for newline)"
+                placeholder={t('studybuddy.placeholder')}
                 rows={1}
                 disabled={isStreaming}
                 className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 leading-relaxed"
@@ -545,7 +548,7 @@ export default function StudyBuddyPage() {
               <button
                 onClick={isRecording ? stopRecording : startRecording}
                 disabled={isStreaming}
-                title={isRecording ? 'Stop recording' : 'Record audio'}
+                title={isRecording ? t('studybuddy.stopRecording') : t('studybuddy.recordAudio')}
                 className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors flex-shrink-0 disabled:cursor-not-allowed ${
                   isRecording
                     ? 'bg-red-500 text-white animate-pulse'

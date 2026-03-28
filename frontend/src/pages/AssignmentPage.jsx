@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
 
 function stripExtension(filename) {
@@ -46,6 +47,7 @@ const ChatIcon = () => (
 export default function AssignmentPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [course, setCourse] = useState(null)
 
   useEffect(() => {
@@ -60,13 +62,13 @@ export default function AssignmentPage() {
     <div className="p-8">
       <nav className="text-sm text-gray-400 mb-2 flex items-center gap-1.5 flex-wrap">
         <button onClick={() => navigate('/dashboard')}
-                className="hover:text-gray-600 hover:underline">Dashboard</button>
+                className="hover:text-gray-600 hover:underline">{t('nav.dashboard')}</button>
         <span>/</span>
         <button onClick={() => navigate(`/course/${courseId}`)}
                 className="hover:text-gray-600 hover:underline">{course?.name}</button>
         <span>/</span>
         <button onClick={() => navigate(`/course/${courseId}/assignments`)}
-                className="hover:text-gray-600 hover:underline">Assignments</button>
+                className="hover:text-gray-600 hover:underline">{t('assignments.title')}</button>
         <span>/</span>
         <span className="text-gray-600 font-medium truncate max-w-xs">{title}</span>
       </nav>
@@ -78,18 +80,18 @@ export default function AssignmentPage() {
 
       <div className="flex gap-6 flex-wrap">
         <OptionCard
-          title="View Assignment"
-          description="Read the full assignment spec, deliverables, and rubric"
+          title={t('assignments.viewAssignment')}
+          description={t('assignments.viewAssignmentDesc')}
           color="#374151"
           icon={<ViewIcon />}
           onClick={() => navigate(`/course/${courseId}/assignments/${encodeURIComponent(filename)}/view`)}
         />
         <OptionCard
-          title="Assignment Chat"
-          description="Ask questions about requirements and concepts — task tracker included in the sidebar"
+          title={t('assignments.assignmentChat')}
+          description={t('assignments.assignmentChatDesc')}
           color="#b45309"
           icon={<ChatIcon />}
-          badge="Guardrails on"
+          badge={t('assignments.guardrailsOn')}
           onClick={() => navigate(`/course/${courseId}/assignments/${encodeURIComponent(filename)}/chat`)}
         />
       </div>

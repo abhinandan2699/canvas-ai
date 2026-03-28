@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import i18n from '../i18n'
 
 function stripExtension(filename) {
   const idx = filename.lastIndexOf('.')
@@ -8,7 +10,7 @@ function stripExtension(filename) {
 }
 
 // ── Idle screen ──────────────────────────────────────────────────────────────
-function IdleScreen({ filename, onGenerate }) {
+function IdleScreen({ filename, onGenerate, t }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6 text-center px-4">
       <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
@@ -18,35 +20,35 @@ function IdleScreen({ filename, onGenerate }) {
         </svg>
       </div>
       <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-1">Ready to test your knowledge?</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-1">{t('mcq.readyTitle')}</h2>
         <p className="text-gray-500 text-sm">{stripExtension(filename)}</p>
       </div>
       <p className="text-gray-400 text-sm max-w-sm">
-        The AI will generate 10–15 multiple-choice questions covering all the key topics in this lecture.
+        {t('mcq.readyDesc')}
       </p>
       <button
         onClick={onGenerate}
         className="px-8 py-3 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors shadow-sm"
       >
-        Generate MCQ
+        {t('mcq.generateMcq')}
       </button>
     </div>
   )
 }
 
 // ── Loading screen ────────────────────────────────────────────────────────────
-function LoadingScreen({ filename }) {
+function LoadingScreen({ filename, t }) {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-4">
       <div className="w-12 h-12 border-4 border-green-200 border-t-green-600 rounded-full animate-spin" />
-      <p className="text-gray-600 font-medium">Generating questions…</p>
+      <p className="text-gray-600 font-medium">{t('mcq.generating')}</p>
       <p className="text-gray-400 text-sm">{stripExtension(filename)}</p>
     </div>
   )
 }
 
 // ── Quiz screen ───────────────────────────────────────────────────────────────
-function QuizScreen({ questions, courseId, filename, navigate }) {
+function QuizScreen({ questions, courseId, filename, navigate, t }) {
   const [index, setIndex] = useState(0)
   const [selected, setSelected] = useState(null)
   const [revealed, setRevealed] = useState(false)
@@ -102,11 +104,11 @@ function QuizScreen({ questions, courseId, filename, navigate }) {
         </div>
         <div>
           <h2 className="text-2xl font-bold text-gray-800">
-            {pct >= 80 ? 'Excellent work!' : pct >= 50 ? 'Good effort!' : 'Keep studying!'}
+            {pct >= 80 ? t('mcq.excellent') : pct >= 50 ? t('mcq.goodEffort') : t('mcq.keepStudying')}
           </h2>
-          <p className="text-gray-500 mt-1">You scored <strong>{score}</strong> out of <strong>{questions.length}</strong></p>
+          <p className="text-gray-500 mt-1">{t('mcq.youScored')} <strong>{score}</strong> {t('mcq.outOf')} <strong>{questions.length}</strong></p>
           {newBest && (
-            <p className="text-green-600 font-semibold mt-2">New best score!</p>
+            <p className="text-green-600 font-semibold mt-2">{t('mcq.newBest')}</p>
           )}
         </div>
         <div className="flex gap-3">
@@ -114,13 +116,13 @@ function QuizScreen({ questions, courseId, filename, navigate }) {
             onClick={() => navigate(`/course/${courseId}/lectures/${encodeURIComponent(filename)}`)}
             className="px-6 py-2.5 border border-gray-200 text-gray-600 font-medium rounded-xl hover:bg-gray-50 transition-colors"
           >
-            Back to Lecture
+            {t('mcq.backToLecture')}
           </button>
           <button
             onClick={() => window.location.reload()}
             className="px-6 py-2.5 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors"
           >
-            Retake
+            {t('mcq.retake')}
           </button>
         </div>
       </div>
@@ -132,8 +134,8 @@ function QuizScreen({ questions, courseId, filename, navigate }) {
       {/* Progress header */}
       <div className="px-8 pt-8 pb-4">
         <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
-          <span>Question {index + 1} of {questions.length}</span>
-          <span>{score} correct</span>
+          <span>{t('mcq.questionOf', { current: index + 1, total: questions.length })}</span>
+          <span>{score} {t('mcq.correct')}</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-1.5">
           <div
@@ -182,7 +184,7 @@ function QuizScreen({ questions, courseId, filename, navigate }) {
           {/* Explanation */}
           {revealed && q.explanation && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
-              <strong>Explanation:</strong> {q.explanation}
+              <strong>{t('mcq.explanation')}</strong> {q.explanation}
             </div>
           )}
 
@@ -194,7 +196,7 @@ function QuizScreen({ questions, courseId, filename, navigate }) {
                 disabled={saving}
                 className="px-7 py-2.5 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors disabled:opacity-50"
               >
-                {saving ? 'Saving…' : isLast ? 'See Results' : 'Next →'}
+                {saving ? t('mcq.saving') : isLast ? t('mcq.seeResults') : t('mcq.next')}
               </button>
             </div>
           )}
@@ -208,6 +210,7 @@ function QuizScreen({ questions, courseId, filename, navigate }) {
 export default function MCQPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [phase, setPhase] = useState('idle') // idle | loading | quiz | error
   const [questions, setQuestions] = useState([])
   const [error, setError] = useState('')
@@ -216,11 +219,11 @@ export default function MCQPage() {
     setPhase('loading')
     setError('')
     try {
-      const res = await axios.post(`/api/courses/${courseId}/studybuddy/mcq`, { filename })
+      const res = await axios.post(`/api/courses/${courseId}/studybuddy/mcq`, { filename, language: i18n.language || 'en' })
       setQuestions(res.data.questions)
       setPhase('quiz')
     } catch (e) {
-      setError(e.response?.data?.detail || 'Failed to generate questions. Please try again.')
+      setError(e.response?.data?.detail || t('mcq.failed'))
       setPhase('idle')
     }
   }
@@ -238,7 +241,7 @@ export default function MCQPage() {
           </svg>
         </button>
         <div>
-          <p className="text-xs text-gray-400 leading-none">MCQ Quiz</p>
+          <p className="text-xs text-gray-400 leading-none">{t('mcq.title')}</p>
           <p className="text-sm font-semibold text-gray-700">{stripExtension(filename)}</p>
         </div>
       </div>
@@ -252,16 +255,17 @@ export default function MCQPage() {
                 {error}
               </div>
             )}
-            <IdleScreen filename={filename} onGenerate={generate} />
+            <IdleScreen filename={filename} onGenerate={generate} t={t} />
           </>
         )}
-        {phase === 'loading' && <LoadingScreen filename={filename} />}
+        {phase === 'loading' && <LoadingScreen filename={filename} t={t} />}
         {phase === 'quiz' && (
           <QuizScreen
             questions={questions}
             courseId={courseId}
             filename={filename}
             navigate={navigate}
+            t={t}
           />
         )}
       </div>

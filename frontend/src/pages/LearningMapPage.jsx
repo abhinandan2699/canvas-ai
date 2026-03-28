@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import i18n from '../i18n'
 
 function stripExtension(filename) {
   const idx = filename.lastIndexOf('.')
@@ -8,7 +10,7 @@ function stripExtension(filename) {
 }
 
 // ── Roadmap node ──────────────────────────────────────────────────────────────
-function ChunkNode({ chunk, index, total, selected, onClick }) {
+function ChunkNode({ chunk, index, total, selected, onClick, t }) {
   const isSelected = selected === index
   return (
     <div className="flex gap-4 items-stretch">
@@ -59,7 +61,7 @@ function ChunkNode({ chunk, index, total, selected, onClick }) {
             ))}
             {chunk.keyPoints.length > 3 && (
               <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400">
-                +{chunk.keyPoints.length - 3} more
+                {t('learningMap.more', { count: chunk.keyPoints.length - 3 })}
               </span>
             )}
           </div>
@@ -130,6 +132,7 @@ function ActionResult({ action, result }) {
 export default function LearningMapPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const [mapPhase, setMapPhase] = useState('idle')   // idle | loading | ready | error
   const [chunks, setChunks] = useState([])
@@ -147,11 +150,11 @@ export default function LearningMapPage() {
     setMapPhase('loading')
     setMapError('')
     try {
-      const res = await axios.post(`/api/courses/${courseId}/studybuddy/learning-map`, { filename })
+      const res = await axios.post(`/api/courses/${courseId}/studybuddy/learning-map`, { filename, language: i18n.language || 'en' })
       setChunks(res.data.chunks)
       setMapPhase('ready')
     } catch (e) {
-      setMapError(e.response?.data?.detail || 'Failed to generate learning map. Please try again.')
+      setMapError(e.response?.data?.detail || t('learningMap.failed'))
       setMapPhase('error')
     }
   }
@@ -173,6 +176,7 @@ export default function LearningMapPage() {
             chunkTitle: selectedChunk.title,
             chunkDescription: selectedChunk.description,
             keyPoints: selectedChunk.keyPoints || [],
+            language: i18n.language || 'en',
           },
           { timeout: 300000, responseType: 'blob' }
         )
@@ -185,12 +189,13 @@ export default function LearningMapPage() {
           chunkTitle: selectedChunk.title,
           chunkDescription: selectedChunk.description,
           keyPoints: selectedChunk.keyPoints || [],
+          language: i18n.language || 'en',
         })
         setActionResult(res.data.result)
       }
       setActionPhase('done')
     } catch (e) {
-      setActionResult('Failed to generate. Please try again.')
+      setActionResult(t('learningMap.failed'))
       setActionPhase('done')
     }
   }
@@ -217,7 +222,7 @@ export default function LearningMapPage() {
           </svg>
         </button>
         <div>
-          <p className="text-xs text-gray-400 leading-none">Learning Map</p>
+          <p className="text-xs text-gray-400 leading-none">{t('learningMap.title')}</p>
           <p className="text-sm font-semibold text-gray-700">{stripExtension(filename)}</p>
         </div>
       </div>
@@ -236,14 +241,14 @@ export default function LearningMapPage() {
                 </svg>
               </div>
               <div>
-                <p className="font-semibold text-gray-800">Generate Learning Map</p>
-                <p className="text-xs text-gray-400 mt-1">AI will break this lecture into bite-sized study topics</p>
+                <p className="font-semibold text-gray-800">{t('learningMap.generateTitle')}</p>
+                <p className="text-xs text-gray-400 mt-1">{t('learningMap.generateDesc')}</p>
               </div>
               <button
                 onClick={generateMap}
                 className="px-6 py-2.5 bg-teal-700 text-white text-sm font-semibold rounded-xl hover:bg-teal-800 transition-colors"
               >
-                Generate Map
+                {t('learningMap.generateMap')}
               </button>
             </div>
           )}
@@ -251,7 +256,7 @@ export default function LearningMapPage() {
           {mapPhase === 'loading' && (
             <div className="flex flex-col items-center justify-center h-full gap-4">
               <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-700 rounded-full animate-spin" />
-              <p className="text-sm text-gray-500">Mapping your lecture…</p>
+              <p className="text-sm text-gray-500">{t('learningMap.mapping')}</p>
             </div>
           )}
 
@@ -260,7 +265,7 @@ export default function LearningMapPage() {
               <p className="text-sm text-red-500">{mapError}</p>
               <button onClick={generateMap}
                       className="px-5 py-2 bg-teal-700 text-white text-sm font-medium rounded-xl hover:bg-teal-800">
-                Try Again
+                {t('learningMap.tryAgain')}
               </button>
             </div>
           )}
@@ -269,11 +274,11 @@ export default function LearningMapPage() {
             <div className="flex-1 overflow-y-auto px-5 pt-5 pb-3">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  {chunks.length} Topics
+                  {t('learningMap.topics', { count: chunks.length })}
                 </p>
                 <button onClick={generateMap}
                         className="text-xs text-teal-600 hover:text-teal-800 hover:underline">
-                  Regenerate
+                  {t('learningMap.regenerate')}
                 </button>
               </div>
               {chunks.map((chunk, i) => (
@@ -284,6 +289,7 @@ export default function LearningMapPage() {
                   total={chunks.length}
                   selected={selectedIndex}
                   onClick={() => handleSelectChunk(i)}
+                  t={t}
                 />
               ))}
             </div>
@@ -301,7 +307,7 @@ export default function LearningMapPage() {
                 </svg>
               </div>
               <p className="text-sm text-gray-400">
-                {mapPhase === 'ready' ? 'Select a topic from the map to study it' : 'Generate the learning map first'}
+                {mapPhase === 'ready' ? t('learningMap.selectTopic') : t('learningMap.generateFirst')}
               </p>
             </div>
           ) : (
@@ -310,7 +316,7 @@ export default function LearningMapPage() {
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded-full">
-                    Topic {selectedIndex + 1} of {chunks.length}
+                    {t('learningMap.topicOf', { current: selectedIndex + 1, total: chunks.length })}
                   </span>
                   {selectedChunk.estimatedMinutes && (
                     <span className="text-xs text-gray-400">~{selectedChunk.estimatedMinutes} min</span>
@@ -321,7 +327,7 @@ export default function LearningMapPage() {
 
                 {selectedChunk.keyPoints?.length > 0 && (
                   <div className="mt-4">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Key Concepts</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('learningMap.keyConcepts')}</p>
                     <ul className="space-y-1">
                       {selectedChunk.keyPoints.map((kp, i) => (
                         <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
@@ -349,7 +355,7 @@ export default function LearningMapPage() {
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
                   </svg>
-                  Summarise
+                  {t('learningMap.summarise')}
                 </button>
                 <button
                   onClick={() => runAction('video')}
@@ -364,7 +370,7 @@ export default function LearningMapPage() {
                     <path strokeLinecap="round" strokeLinejoin="round"
                       d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z" />
                   </svg>
-                  Generate Video
+                  {t('learningMap.generateVideo')}
                 </button>
               </div>
 
@@ -372,7 +378,7 @@ export default function LearningMapPage() {
               {actionPhase === 'loading' && (
                 <div className="flex items-center gap-3 py-6 text-gray-500 text-sm">
                   <div className="w-5 h-5 border-2 border-gray-300 border-t-teal-600 rounded-full animate-spin" />
-                  {actionType === 'summarize' ? 'Generating summary…' : 'Generating video (this may take 1–2 min)…'}
+                  {actionType === 'summarize' ? t('learningMap.generatingSummary') : t('learningMap.generatingVideo')}
                 </div>
               )}
 
@@ -384,14 +390,14 @@ export default function LearningMapPage() {
                         <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center">
                           <div className="w-2 h-2 rounded-full bg-teal-600" />
                         </div>
-                        <span className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Summary</span>
+                        <span className="text-xs font-semibold text-teal-700 uppercase tracking-wide">{t('learningMap.summary')}</span>
                       </>
                     ) : (
                       <>
                         <div className="w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center">
                           <div className="w-2 h-2 rounded-full bg-violet-600" />
                         </div>
-                        <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">Video</span>
+                        <span className="text-xs font-semibold text-violet-700 uppercase tracking-wide">{t('learningMap.video')}</span>
                       </>
                     )}
                   </div>

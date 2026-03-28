@@ -1,4 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import LanguageSwitcher from './LanguageSwitcher'
 
 // Clemson paw logo as SVG
 function PawIcon() {
@@ -33,6 +35,7 @@ function DashboardIcon() {
 
 export default function Sidebar() {
   const location = useLocation()
+  const { t } = useTranslation()
   const isDashboard = location.pathname === '/dashboard'
 
   return (
@@ -47,7 +50,7 @@ export default function Sidebar() {
         <div className="w-9 h-9 rounded-full bg-gray-400 flex items-center justify-center overflow-hidden">
           <UserIcon />
         </div>
-        <span className="text-xs text-gray-300 leading-none">Account</span>
+        <span className="text-xs text-gray-300 leading-none">{t('nav.account')}</span>
       </div>
 
       {/* Divider */}
@@ -61,8 +64,13 @@ export default function Sidebar() {
         }`}
       >
         <DashboardIcon />
-        <span className="text-xs leading-none">Dashboard</span>
+        <span className="text-xs leading-none">{t('nav.dashboard')}</span>
       </Link>
+
+      {/* Language switcher — always visible */}
+      <div className="mt-auto py-3">
+        <LanguageSwitcher variant="compact" />
+      </div>
     </aside>
   )
 }

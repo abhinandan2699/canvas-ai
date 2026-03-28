@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import i18n from '../i18n'
 
 function stripExtension(filename) {
   const idx = filename.lastIndexOf('.')
@@ -127,7 +128,8 @@ export default function AssignmentTrackerPage() {
     setError(null)
     try {
       const { data } = await axios.post(
-        `/api/courses/${courseId}/assignments/${encodeURIComponent(filename)}/breakdown`
+        `/api/courses/${courseId}/assignments/${encodeURIComponent(filename)}/breakdown`,
+        { language: i18n.language || 'en' }
       )
       setTasks(data.tasks)
       await saveTasks(data.tasks)
