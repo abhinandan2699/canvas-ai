@@ -27,6 +27,7 @@ i18n
     lng: getStoredLanguage(),
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
+    initImmediate: false,
   })
 
 export default i18n
