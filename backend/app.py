@@ -577,16 +577,13 @@ def _generate_scene_assets(scene_idx: int, scene: dict, temp_dir: str) -> tuple[
 
     # Generate image with DALL-E 3
     raw_visual = scene['visual'] or f"diagram illustrating {scene['title']}"
-    # Incorporate the first ~300 chars of narration so the image reflects what is being said
-    narration_hint = scene['narration'][:300] if scene['narration'] else ""
     visual_prompt = (
-        f"A clean, academic educational slide/diagram in the style of a university textbook or Khan Academy. "
-        f"Pure white background. Flat 2D vector-art style — NO photography, NO real people, NO 3D renders, NO gradients, NO decorative art. "
-        f"The visual must directly illustrate this explanation: {narration_hint} "
-        f"Specifically show: {raw_visual}. "
-        f"Use labeled boxes, arrows, step-by-step flowcharts, annotated equations, comparison tables, or example walkthroughs as appropriate. "
-        f"All text labels must be legible and specific. "
-        f"Topic: {scene['title']}."
+        f"A very simple, minimal educational illustration on a pure white background. "
+        f"Show only ONE clear idea: {raw_visual}. "
+        f"Use only 2–3 basic shapes (boxes, circles, or arrows) with short text labels. "
+        f"Clean, uncluttered, easy to read at a glance. "
+        f"Style: simple flat icons or a single small diagram — like a whiteboard sketch. "
+        f"NO complex diagrams, NO dense text, NO decorations, NO gradients, NO photography, NO people."
     )
     img_response = openai_std_client.images.generate(
         model="dall-e-3",
@@ -625,7 +622,16 @@ def _compose_video(scene_assets: list, output_path: str):
         clips.append(clip)
 
     final = concatenate_videoclips(clips, method="compose")
-    final.write_videofile(output_path, fps=24, codec="libx264", audio_codec="aac", logger=None)
+    final = final.resized(width=640)
+    final.write_videofile(
+        output_path,
+        fps=10,
+        codec="libx264",
+        audio_codec="aac",
+        bitrate="300k",
+        audio_bitrate="64k",
+        logger=None,
+    )
 
     for clip in clips:
         clip.close()
@@ -718,9 +724,9 @@ async def generate_video_endpoint(course_id: str, body: ChunkActionRequest):
         "The video must have exactly 5 scenes — no more, no less. "
         "Each scene MUST follow this EXACT format:\n\n"
         "SCENE [n]: [Descriptive scene title]\n"
-        "VISUAL: [Precise description of what appears on screen — must directly illustrate what the narrator is saying. "
-        "Describe labeled diagrams, flowcharts, annotated equations, or example walkthroughs. "
-        "Name the specific variables, labels, and layout so the image matches the narration.]\n"
+        "VISUAL: [One simple image that illustrates the key idea being explained. "
+        "Describe it in one sentence — e.g. 'a box labeled Input with an arrow pointing to a box labeled Output'. "
+        "Keep it minimal: 2–3 shapes max with short labels.]\n"
         "NARRATION: [Spoken narration — 70 to 80 words. "
         "Teach the concept clearly with a concrete example. Write naturally spoken sentences, no bullet points.]\n\n"
         "Rules:\n"

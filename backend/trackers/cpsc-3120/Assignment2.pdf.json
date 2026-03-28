@@ -1,0 +1,104 @@
+{
+  "filename": "Assignment2.pdf",
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Write explanation of DFS",
+      "description": "Write a clear explanation of Depth-First Search in the section for Question 1.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "2",
+      "title": "Write explanation of backtracking",
+      "description": "Write a description of backtracking in the same section for Question 1.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "3",
+      "title": "Compare DFS and BFS",
+      "description": "Write a comparison of DFS and Breadth-First Search, highlighting the differences in the section for Question 1.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "4",
+      "title": "Trace DFS on given graph",
+      "description": "Trace the traversal order and show recursive call flow for the provided graph (A \u2014 B \u2014 C, A \u2014 D, B \u2014 E) in the section for Question 2.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "5",
+      "title": "Implement recursive DFS",
+      "description": "Implement the recursive DFS function in the file dfs.py.",
+      "estimatedHours": 1,
+      "completed": false
+    },
+    {
+      "id": "6",
+      "title": "Implement iterative DFS",
+      "description": "Implement the iterative DFS function using a stack in the file dfs.py.",
+      "estimatedHours": 1,
+      "completed": false
+    },
+    {
+      "id": "7",
+      "title": "Write explanation using maze example",
+      "description": "Explain backtracking by using a maze example in the section for Question 5.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "8",
+      "title": "Write explanation using tree traversal",
+      "description": "Explain backtracking using a tree traversal example in the same section for Question 5.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "9",
+      "title": "Explain cycle detection in DFS",
+      "description": "Write an explanation of how DFS can detect cycles in graphs in the section for Question 6.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "10",
+      "title": "Explain DFS complexity O(V + E)",
+      "description": "Write an explanation of why DFS has a time complexity of O(V + E) in the section for Question 7.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "11",
+      "title": "Explain finding connected components",
+      "description": "Describe how DFS finds the number of connected components in the section for Question 8.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "12",
+      "title": "Explain DFS-based topological sorting",
+      "description": "Write an explanation of how DFS can be used for topological sorting in the section for Question 9.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "13",
+      "title": "Define edge types in DFS",
+      "description": "Define and explain tree edge, back edge, forward edge, and cross edge in the section for Question 10.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "14",
+      "title": "Final review and submission",
+      "description": "Review the entire document, package it, and submit the assignment.",
+      "estimatedHours": 0.25,
+      "completed": false
+    }
+  ],
+  "savedAt": 1774718392763
+}

@@ -1,0 +1,104 @@
+{
+  "filename": "Assignment1.pdf",
+  "tasks": [
+    {
+      "id": "1",
+      "title": "Write explanation for BFS",
+      "description": "Write a short paragraph explaining the Breadth-First Search algorithm, its type of traversal, and why it guarantees the shortest path in unweighted graphs in the 'bfs_explanation.txt' file.",
+      "estimatedHours": 0.5,
+      "completed": true
+    },
+    {
+      "id": "2",
+      "title": "Trace BFS algorithm on a given graph",
+      "description": "Trace the BFS algorithm on the graph provided (A \u2014 B \u2014 C, A \u2014 D, B \u2014 E), documenting queue state and visited order at each step in the 'bfs_trace.txt' file.",
+      "estimatedHours": 0.5,
+      "completed": true
+    },
+    {
+      "id": "3",
+      "title": "Draw BFS tree",
+      "description": "Draw and include the BFS tree based on the tracing done on the provided graph and explain it in the 'bfs_tree_diagram.png' file.",
+      "estimatedHours": 0.25,
+      "completed": true
+    },
+    {
+      "id": "4",
+      "title": "Write BFS pseudocode",
+      "description": "Write the pseudocode for the BFS algorithm using a queue and a visited array in the 'bfs_pseudocode.txt' file.",
+      "estimatedHours": 0.5,
+      "completed": true
+    },
+    {
+      "id": "5",
+      "title": "Solve shortest path from S to E",
+      "description": "Find the shortest path from S to E on the graph (S \u2014 A \u2014 B, S \u2014 C, C \u2014 D \u2014 E, B \u2014 E) and document the path in the 'bfs_shortest_path.txt' file.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "6",
+      "title": "Explain BFS short path step-by-step",
+      "description": "Provide a step-by-step explanation of how the BFS algorithm finds the shortest path from S to E in the 'bfs_shortest_path_explanation.txt' file.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "7",
+      "title": "Explain BFS time complexity",
+      "description": "Write an explanation of why the time complexity of BFS is O(V + E) in the 'bfs_complexity_analysis.txt' file.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "8",
+      "title": "Compare BFS and DFS",
+      "description": "Document comparisons between BFS and DFS in terms of data structures, traversal styles, use cases, and memory usage in the 'bfs_vs_dfs.txt' file.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "9",
+      "title": "Write applications of BFS",
+      "description": "List and explain applications of BFS in social networks and web crawling in the 'bfs_applications.txt' file.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "10",
+      "title": "Solve grid problem using BFS",
+      "description": "Find the minimum steps from S to G for the grid problem and why BFS works here; document the solution and explanation in the 'bfs_grid_solution.txt' file.",
+      "estimatedHours": 1,
+      "completed": false
+    },
+    {
+      "id": "11",
+      "title": "Model grid as graph",
+      "description": "Explain how to model the grid problem as a graph in the 'bfs_grid_graph_model.txt' file.",
+      "estimatedHours": 0.25,
+      "completed": false
+    },
+    {
+      "id": "12",
+      "title": "Implement BFS in Python or Java",
+      "description": "Write the BFS algorithm in either Python or Java in the 'bfs_algorithm.py' or 'bfs_algorithm.java' file.",
+      "estimatedHours": 1.5,
+      "completed": false
+    },
+    {
+      "id": "13",
+      "title": "Explain Bidirectional BFS",
+      "description": "Write an explanation of the Bidirectional BFS algorithm in the 'bfs_bidirectional_explanation.txt' file.",
+      "estimatedHours": 0.5,
+      "completed": false
+    },
+    {
+      "id": "14",
+      "title": "Final review, packaging, and submission",
+      "description": "Review all files for correctness and completeness and prepare them for submission.",
+      "estimatedHours": 0.25,
+      "completed": false
+    }
+  ],
+  "savedAt": 1774718575920
+}

@@ -8,9 +8,26 @@ function stripExtension(filename) {
   return idx > 0 ? filename.slice(0, idx) : filename
 }
 
-function AssignmentCard({ filename, courseColor, onClick, t }) {
+function ProgressBar({ pct }) {
+  const color = pct === 0 ? 'transparent' : pct < 50 ? '#f59e0b' : pct < 80 ? '#3b82f6' : '#22c55e'
+  return (
+    <div className="w-full bg-gray-100 rounded-full h-2 mt-3">
+      <div
+        className="h-2 rounded-full transition-all duration-500"
+        style={{ width: `${pct}%`, backgroundColor: color }}
+      />
+    </div>
+  )
+}
+
+function AssignmentCard({ filename, courseColor, onClick, t, tracker }) {
   const title = stripExtension(filename).replace(/_/g, ' ')
   const ext = filename.split('.').pop().toUpperCase()
+  const totalTasks = tracker?.length || 0
+  const completedTasks = tracker?.filter(t => t.completed).length || 0
+  const pct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+  const started = totalTasks > 0
+  const color = pct === 0 ? '#9ca3af' : pct < 50 ? '#f59e0b' : pct < 80 ? '#3b82f6' : '#22c55e'
 
   return (
     <div
@@ -35,14 +52,12 @@ function AssignmentCard({ filename, courseColor, onClick, t }) {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-2">
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                style={{ backgroundColor: courseColor + '15', color: courseColor }}>
-            {t('assignments.chatWithAi')}
-          </span>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-600">
-            {t('assignments.taskTracker')}
-          </span>
+        <div className="mt-4">
+          <div className="flex justify-between items-center text-xs text-gray-500">
+            <span>{started ? `${completedTasks}/${totalTasks} tasks done` : t('lectures.notStarted')}</span>
+            <span className="font-medium" style={{ color }}>{started ? `${pct}%` : '—'}</span>
+          </div>
+          <ProgressBar pct={pct} />
         </div>
       </div>
     </div>
@@ -55,15 +70,25 @@ export default function AssignmentListPage() {
   const { t } = useTranslation()
   const [course, setCourse] = useState(null)
   const [files, setFiles] = useState([])
+  const [trackers, setTrackers] = useState({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([
       axios.get('/api/courses'),
       axios.get(`/api/courses/${courseId}/files/assignments`),
-    ]).then(([coursesRes, filesRes]) => {
+    ]).then(async ([coursesRes, filesRes]) => {
       setCourse(coursesRes.data.find(c => c.id === courseId) || null)
-      setFiles(filesRes.data)
+      const fileList = filesRes.data
+      setFiles(fileList)
+      const trackerResults = await Promise.all(
+        fileList.map(f =>
+          axios.get(`/api/courses/${courseId}/assignments/${encodeURIComponent(f)}/tracker`)
+            .then(r => [f, r.data.tasks || []])
+            .catch(() => [f, []])
+        )
+      )
+      setTrackers(Object.fromEntries(trackerResults))
     }).finally(() => setLoading(false))
   }, [courseId])
 
@@ -117,6 +142,7 @@ export default function AssignmentListPage() {
               courseColor={course?.color || '#3b82f6'}
               onClick={() => navigate(`/course/${courseId}/assignments/${encodeURIComponent(filename)}`)}
               t={t}
+              tracker={trackers[filename]}
             />
           ))}
         </div>

@@ -11,6 +11,7 @@ function stripExtension(filename) {
 export default function AssignmentViewPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [course, setCourse] = useState(null)
 
   const title = stripExtension(filename).replace(/_/g, ' ')
