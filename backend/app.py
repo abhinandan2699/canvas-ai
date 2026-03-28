@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 import re
 import tempfile
@@ -12,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
-from openai import AzureOpenAI, OpenAI
+from openai import OpenAI
 
 load_dotenv()
 
@@ -36,14 +37,14 @@ PROGRESS_DIR.mkdir(exist_ok=True)
 TRACKERS_DIR = BASE_DIR / "trackers"
 TRACKERS_DIR.mkdir(exist_ok=True)
 
-openai_client = AzureOpenAI(
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-)
-
-# Standard OpenAI client for DALL-E 3 and TTS (no Azure deployment needed)
-openai_std_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Unified OpenAI client for all features
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+openai_std_client = openai_client
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+VIDEO_SCRIPT_MODEL = os.getenv("VIDEO_SCRIPT_MODEL", "gemini-1.5")  # use Gemini by default
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_URL = os.getenv("GEMINI_API_URL", "https://generativeai.googleapis.com")
 
 
 def load_courses():
@@ -59,6 +60,49 @@ def _language_instruction(lang: str) -> str:
             "All your output — questions, answers, explanations, summaries, chat messages, task titles, and any other text — must be written in Spanish."
         )
     return ""
+
+
+def generate_video_script_with_gemini(prompt: str, model: str = None) -> str:
+    import requests
+
+    model = model or GEMINI_MODEL or VIDEO_SCRIPT_MODEL
+
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY is not configured")
+
+    url = f"{GEMINI_API_URL}/v1beta/models/{model}:generateContent?key={GEMINI_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.2,
+            "maxOutputTokens": 16384,
+        },
+    }
+
+    try:
+        resp = requests.post(url, headers=headers, json=body, timeout=120)
+    except requests.RequestException as e:
+        logging.error("Gemini API connection error: %s", e, exc_info=True)
+        raise HTTPException(status_code=502, detail=f"Gemini API connection error: {e}")
+
+    if resp.status_code != 200:
+        logging.error("Gemini API returned status %s: %s", resp.status_code, resp.text)
+        raise HTTPException(status_code=502, detail=f"Gemini API error: {resp.status_code} {resp.text}")
+
+    try:
+        data = resp.json()
+    except ValueError as e:
+        logging.error("Failed to decode Gemini JSON: %s", e, exc_info=True)
+        raise HTTPException(status_code=502, detail="Gemini API returned invalid JSON")
+
+    candidates = data.get("candidates") or []
+    if not candidates:
+        logging.error("Gemini API returned no candidates: %s", data)
+        raise HTTPException(status_code=502, detail="Gemini API returned no candidates")
+
+    parts = candidates[0].get("content", {}).get("parts", [])
+    return "".join(p.get("text", "") for p in parts).strip()
 
 
 # ---------------------------------------------------------------------------
@@ -281,7 +325,7 @@ If a question is not covered in the slides, say so honestly and help as best you
 
     def stream():
         response = openai_client.chat.completions.create(
-            model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+            model=OPENAI_MODEL,
             max_tokens=2048,
             stream=True,
             messages=[
@@ -374,7 +418,7 @@ def generate_flashcards(course_id: str, body: FlashcardRequest):
 
     lang_inst = _language_instruction(body.language or "en")
     response = openai_client.chat.completions.create(
-        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        model=OPENAI_MODEL,
         max_tokens=2048,
         messages=[
             {
@@ -455,7 +499,7 @@ def generate_learning_map(course_id: str, body: LearningMapRequest):
     lang_inst = _language_instruction(body.language or "en")
 
     response = openai_client.chat.completions.create(
-        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        model=OPENAI_MODEL,
         max_tokens=3000,
         messages=[
             {
@@ -533,18 +577,22 @@ def _generate_scene_assets(scene_idx: int, scene: dict, temp_dir: str) -> tuple[
 
     # Generate image with DALL-E 3
     raw_visual = scene['visual'] or f"diagram illustrating {scene['title']}"
+    # Incorporate the first ~300 chars of narration so the image reflects what is being said
+    narration_hint = scene['narration'][:300] if scene['narration'] else ""
     visual_prompt = (
-        f"A flat, clean educational diagram in the style of a university textbook. "
-        f"Pure white background. Uses labeled boxes, arrows, flowcharts, or annotated figures as appropriate. "
-        f"2D vector-art style — NO photography, NO people, NO 3D renders, NO abstract art, NO gradients. "
-        f"All text labels are legible. The diagram clearly shows: {raw_visual}. "
-        f"Topic context: {scene['title']}."
+        f"A clean, academic educational slide/diagram in the style of a university textbook or Khan Academy. "
+        f"Pure white background. Flat 2D vector-art style — NO photography, NO real people, NO 3D renders, NO gradients, NO decorative art. "
+        f"The visual must directly illustrate this explanation: {narration_hint} "
+        f"Specifically show: {raw_visual}. "
+        f"Use labeled boxes, arrows, step-by-step flowcharts, annotated equations, comparison tables, or example walkthroughs as appropriate. "
+        f"All text labels must be legible and specific. "
+        f"Topic: {scene['title']}."
     )
     img_response = openai_std_client.images.generate(
         model="dall-e-3",
         prompt=visual_prompt,
-        size="1792x1024",
-        quality="hd",
+        size="1024x1024",
+        quality="standard",
         n=1,
     )
     img_url = img_response.data[0].url
@@ -639,8 +687,9 @@ def chunk_action(course_id: str, body: ChunkActionRequest):
             f"Use this lecture content as your source:\n\n{text[:8000]}"
         )
 
+    model_name = VIDEO_SCRIPT_MODEL if body.action == "video" else OPENAI_MODEL
     response = openai_client.chat.completions.create(
-        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        model=model_name,
         max_tokens=2048,
         messages=[
             {"role": "system", "content": system_msg},
@@ -659,60 +708,95 @@ async def generate_video_endpoint(course_id: str, body: ChunkActionRequest):
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
+    logging.info("generate-video endpoint called for course=%s filename=%s action=%s", course_id, body.filename, body.action)
     text = _extract_file_text(course, body.filename)
     key_points_str = "\n".join(f"- {kp}" for kp in body.keyPoints)
     lang_inst = _language_instruction(body.language or "en")
 
     system_msg = (
-        "You are an expert educational video scriptwriter. Write a thorough, deeply explanatory script "
-        "for a 6–10 minute educational explainer video. "
-        "The video must have 6–8 scenes. Each scene MUST follow this exact format:\n\n"
+        "You are an expert educational video scriptwriter creating a university-level explainer video. "
+        "The video must have exactly 5 scenes — no more, no less. "
+        "Each scene MUST follow this EXACT format:\n\n"
         "SCENE [n]: [Descriptive scene title]\n"
-        "VISUAL: [Detailed description of what appears on screen — diagrams, labels, animations, examples, equations]\n"
-        "NARRATION: [The narrator's full spoken words — minimum 120 words per scene. "
-        "Explain the concept thoroughly, use analogies, walk through examples step by step, "
-        "and connect ideas to real-world applications. Do not summarise — fully explain.]\n\n"
+        "VISUAL: [Precise description of what appears on screen — must directly illustrate what the narrator is saying. "
+        "Describe labeled diagrams, flowcharts, annotated equations, or example walkthroughs. "
+        "Name the specific variables, labels, and layout so the image matches the narration.]\n"
+        "NARRATION: [Spoken narration — 70 to 80 words. "
+        "Teach the concept clearly with a concrete example. Write naturally spoken sentences, no bullet points.]\n\n"
         "Rules:\n"
-        "- Every NARRATION must be at least 120 words\n"
-        "- Use plain conversational language a student can follow\n"
-        "- Each scene covers ONE idea deeply, not multiple ideas superficially\n"
-        "- End with a 'Recap' scene that ties everything together\n"
-        "- Do not use markdown, bullet points, or headers inside NARRATION"
+        "- NARRATION must be 70–80 words — count carefully\n"
+        "- VISUAL must directly illustrate what NARRATION is explaining\n"
+        "- Scene 1: motivate the topic with a real-world scenario\n"
+        "- Scene 5: recap all concepts\n"
+        "- No markdown, bullet points, or headers inside NARRATION\n"
+        "- Output only the 5 scene blocks — no preamble, no commentary"
         + lang_inst
     )
     user_msg = (
-        f"Write a detailed, comprehensive video script for: '{body.chunkTitle}'\n"
+        f"Write a 5-scene educational video script for: '{body.chunkTitle}'\n"
         f"Description: {body.chunkDescription}\n"
-        f"Key concepts to cover deeply:\n{key_points_str}\n\n"
-        f"Lecture source material:\n\n{text[:10000]}"
+        f"Key concepts:\n{key_points_str}\n\n"
+        f"Source material:\n\n{text[:6000]}"
     )
 
-    script_response = openai_client.chat.completions.create(
-        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
-        max_tokens=4096,
-        messages=[
-            {"role": "system", "content": system_msg},
-            {"role": "user", "content": user_msg},
-        ],
-    )
-    script_text = script_response.choices[0].message.content.strip()
+    try:
+        if GEMINI_API_KEY:
+            logging.info("Using Gemini endpoint for video script generation")
+            script_text = generate_video_script_with_gemini(f"System: {system_msg}\n\nUser: {user_msg}")
+        else:
+            logging.info("Using OpenAI for video script generation")
+            script_response = openai_client.chat.completions.create(
+                model=VIDEO_SCRIPT_MODEL,
+                max_tokens=4096,
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": user_msg},
+                ],
+            )
+            script_text = script_response.choices[0].message.content.strip()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception("Video script generation failed")
+        raise HTTPException(status_code=502, detail=f"Video script generation failed: {e}")
+
+    if not script_text:
+        raise HTTPException(status_code=502, detail="Video script generation returned empty script")
+
     scenes = _parse_script_scenes(script_text)
+    logging.info("Parsed %d scenes from script", len(scenes))
 
     loop = asyncio.get_running_loop()
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        with ThreadPoolExecutor(max_workers=min(len(scenes), 8)) as executor:
-            futures = [
-                loop.run_in_executor(executor, _generate_scene_assets, i, scene, temp_dir)
-                for i, scene in enumerate(scenes)
-            ]
-            scene_assets = await asyncio.gather(*futures)
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            try:
+                with ThreadPoolExecutor(max_workers=min(len(scenes), 8)) as executor:
+                    futures = [
+                        loop.run_in_executor(executor, _generate_scene_assets, i, scene, temp_dir)
+                        for i, scene in enumerate(scenes)
+                    ]
+                    scene_assets = await asyncio.gather(*futures)
+                logging.info("Scene assets generated successfully")
+            except Exception as e:
+                logging.exception("Scene asset generation failed")
+                raise HTTPException(status_code=502, detail=f"Scene asset generation failed: {e}")
 
-        output_path = os.path.join(temp_dir, "output.mp4")
-        await loop.run_in_executor(None, _compose_video, list(scene_assets), output_path)
+            output_path = os.path.join(temp_dir, "output.mp4")
+            try:
+                await loop.run_in_executor(None, _compose_video, list(scene_assets), output_path)
+                logging.info("Video composed successfully")
+            except Exception as e:
+                logging.exception("Video composition failed")
+                raise HTTPException(status_code=502, detail=f"Video composition failed: {e}")
 
-        with open(output_path, "rb") as f:
-            video_bytes = f.read()
+            with open(output_path, "rb") as f:
+                video_bytes = f.read()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.exception("Unexpected error in generate-video")
+        raise HTTPException(status_code=502, detail=f"Unexpected error: {e}")
 
     from fastapi.responses import Response
     return Response(content=video_bytes, media_type="video/mp4")
@@ -757,7 +841,7 @@ def generate_mcq(course_id: str, body: MCQRequest):
 
     lang_inst = _language_instruction(body.language or "en")
     response = openai_client.chat.completions.create(
-        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        model=OPENAI_MODEL,
         max_tokens=4096,
         messages=[
             {
@@ -932,7 +1016,7 @@ Always encourage independent thinking. If a student asks you to "just write the 
 
     def stream():
         response = openai_client.chat.completions.create(
-            model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+            model=OPENAI_MODEL,
             max_tokens=2048,
             stream=True,
             messages=[
@@ -979,7 +1063,7 @@ def assignment_breakdown(course_id: str, filename: str, body: AssignmentBreakdow
     lang_inst = _language_instruction(lang)
 
     response = openai_client.chat.completions.create(
-        model=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
+        model=OPENAI_MODEL,
         max_tokens=2048,
         messages=[
             {

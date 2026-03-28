@@ -9,6 +9,8 @@ export default defineConfig({
         target: 'http://localhost:8000',
         changeOrigin: true,
         headers: { 'Accept-Encoding': 'identity' },
+        timeout: 600000,
+        proxyTimeout: 600000,
       },
     },
   },

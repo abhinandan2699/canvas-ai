@@ -1,9 +1,9 @@
 {
   "lecture1.pdf": {
     "bestScore": 9,
-    "totalQuestions": 11,
-    "attempts": 2,
-    "lastTaken": 1772652299315,
+    "totalQuestions": 12,
+    "attempts": 3,
+    "lastTaken": 1774711187818,
     "history": [
       {
         "date": 1772652233909,
@@ -28,6 +28,22 @@
           "Breadth-First Search (BFS) \u2014 practical applications and use cases",
           "Depth-First Search (DFS) \u2014 applications in graph theory",
           "Uniform Cost Search (UCS) \u2014 data structure and prioritization"
+        ]
+      },
+      {
+        "date": 1774711187818,
+        "score": 3,
+        "totalQuestions": 12,
+        "weakAreas": [
+          "Breadth-First Search (BFS) \u2014 time complexity",
+          "Breadth-First Search (BFS) \u2014 shortest path guarantee",
+          "Depth-First Search (DFS) \u2014 data structure used",
+          "Depth-First Search (DFS) \u2014 use cases",
+          "Uniform Cost Search (UCS) \u2014 comparison with BFS",
+          "A* Search Algorithm \u2014 advantages over UCS",
+          "A* Search Algorithm \u2014 evaluation function",
+          "A* Search Algorithm \u2014 data structure used",
+          "Graph Traversal Algorithms \u2014 applications in puzzles"
         ]
       }
     ]

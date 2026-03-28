@@ -1,0 +1,23 @@
+{
+  "id": "19469667-ea92-4e8d-82f9-c9560e07ba71",
+  "title": "billa is who",
+  "createdAt": 1774709945937,
+  "messages": [
+    {
+      "role": "user",
+      "content": "my name is billa"
+    },
+    {
+      "role": "assistant",
+      "content": "\u00a1Hola, Billa! \u00bfEn qu\u00e9 puedo ayudarte hoy con el curso de Dise\u00f1o y An\u00e1lisis de Algoritmos? \u00bfTienes alguna duda sobre los algoritmos de b\u00fasqueda que vimos, como BFS, DFS, Uniform Cost Search o A*?"
+    },
+    {
+      "role": "user",
+      "content": "billa is who"
+    },
+    {
+      "role": "assistant",
+      "content": "En este contexto, \"Billa\" es simplemente el nombre que t\u00fa mencionaste al presentarte. No tiene un significado especial en las diapositivas ni en el curso. \u00bfQuieres que te ayude con alg\u00fan tema relacionado con los algoritmos?"
+    }
+  ]
+}
