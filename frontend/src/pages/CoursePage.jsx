@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import { fetchCourses } from '../api'
 
 function FileTypeCard({ title, description, icon, color, onClick }) {
   return (
@@ -48,7 +49,7 @@ export default function CoursePage() {
   const [course, setCourse] = useState(null)
 
   useEffect(() => {
-    axios.get('/api/courses').then(res => {
+    fetchCourses().then(res => {
       const found = res.data.find(c => c.id === courseId)
       setCourse(found || null)
     })

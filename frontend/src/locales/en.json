@@ -2,7 +2,13 @@
   "appTitle": "Canvas AI",
   "nav": {
     "dashboard": "Dashboard",
-    "account": "Account"
+    "account": "Account",
+    "settings": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageDesc": "Choose the language used throughout the app"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -37,7 +43,9 @@
     "learningMapDesc": "Break the lecture into bite-sized topics to study",
     "scoreHistory": "Score History",
     "scoreHistoryDesc": "View past attempts and your weak areas",
-    "mcqProgress": "MCQ Progress — Best"
+    "mcqProgress": "MCQ Progress — Best",
+    "viewSlide": "View Slide",
+    "viewSlideDesc": "Read the full lecture file — with Spanish translation in Spanish mode"
   },
   "studybuddy": {
     "title": "StudyBuddy",

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import { fetchCourses } from '../api'
 
 function getFileIcon(filename) {
   const ext = filename.split('.').pop().toLowerCase()
@@ -92,7 +93,7 @@ export default function FileViewerPage() {
 
   useEffect(() => {
     Promise.all([
-      axios.get('/api/courses'),
+      fetchCourses(),
       axios.get(`/api/courses/${courseId}/files/${fileType}`)
     ]).then(([coursesRes, filesRes]) => {
       const found = coursesRes.data.find(c => c.id === courseId)

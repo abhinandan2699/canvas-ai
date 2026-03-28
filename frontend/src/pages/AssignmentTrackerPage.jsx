@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { fetchCourses } from '../api'
 import i18n from '../i18n'
 
 function stripExtension(filename) {
@@ -144,7 +145,7 @@ export default function AssignmentTrackerPage() {
     async function load() {
       try {
         const [coursesRes, trackerRes] = await Promise.all([
-          axios.get('/api/courses'),
+          fetchCourses(),
           axios.get(`/api/courses/${courseId}/assignments/${encodeURIComponent(filename)}/tracker`),
         ])
         setCourse(coursesRes.data.find(c => c.id === courseId) || null)

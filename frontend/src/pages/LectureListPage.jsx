@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import { fetchCourses } from '../api'
 
 function stripExtension(filename) {
   const idx = filename.lastIndexOf('.')
@@ -82,7 +83,7 @@ export default function LectureListPage() {
 
   useEffect(() => {
     Promise.all([
-      axios.get('/api/courses'),
+      fetchCourses(),
       axios.get(`/api/courses/${courseId}/files/lectures`),
       axios.get(`/api/courses/${courseId}/progress`),
     ]).then(([coursesRes, filesRes, progressRes]) => {

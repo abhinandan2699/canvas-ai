@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import { fetchCourses } from '../api'
 
 function stripExtension(filename) {
   const idx = filename.lastIndexOf('.')
@@ -51,7 +52,7 @@ export default function AssignmentPage() {
   const [course, setCourse] = useState(null)
 
   useEffect(() => {
-    axios.get('/api/courses').then(res => {
+    fetchCourses().then(res => {
       setCourse(res.data.find(c => c.id === courseId) || null)
     })
   }, [courseId])

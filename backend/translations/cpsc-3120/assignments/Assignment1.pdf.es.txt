@@ -1,0 +1,58 @@
+Asignación: Búsqueda en Amplitud (BFS)  
+Pregunta 1: Comprensión Básica  
+Explica la Búsqueda en Amplitud con tus propias palabras.  
+¿Qué tipo de recorrido sigue?  
+¿Por qué garantiza el camino más corto en gráficos no ponderados?  
+
+Pregunta 2: Rastrear el Algoritmo  
+Gráfico: A — B — C, A — D, B — E. Comienza desde A.  
+  
+Mostrar el estado de la cola en cada paso  
+  
+Mostrar el orden de visitados  
+  
+Dibujar el árbol BFS  
+
+Pregunta 3: Escritura de Pseudocódigo  
+Escribe BFS usando cola y arreglo de visitados.  
+
+Pregunta 4: Camino Más Corto  
+Gráfico: S — A — B, S — C, C — D — E, B — E.  
+  
+Encontrar el camino más corto de S a E  
+  
+Explicar paso a paso  
+
+Pregunta 5: Análisis de Complejidad  
+Explica por qué BFS es O(V + E).  
+
+Pregunta 6: BFS vs DFS  
+  
+Estructura de datos  
+  
+Estilo de recorrido  
+  
+Casos de uso  
+  
+Uso de memoria  
+
+Pregunta 7: Aplicaciones  
+  
+Redes sociales  
+  
+Rastreo web  
+
+Pregunta 8: Problema de Rejilla  
+0 = vacío, 1 = bloqueado, S = inicio, G = objetivo.  
+  
+Encontrar los pasos mínimos de S a G  
+  
+Por qué BFS funciona aquí  
+  
+Modelar la rejilla como gráfico  
+
+Pregunta 9: Codificación  
+Escribe BFS en Python o Java.  
+
+Pregunta 10: Avanzado  
+Explica la BFS Bidireccional.

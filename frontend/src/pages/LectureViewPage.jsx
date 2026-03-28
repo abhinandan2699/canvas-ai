@@ -9,7 +9,7 @@ function stripExtension(filename) {
   return idx > 0 ? filename.slice(0, idx) : filename
 }
 
-export default function AssignmentViewPage() {
+export default function LectureViewPage() {
   const { courseId, filename } = useParams()
   const navigate = useNavigate()
   const { t, i18n } = useTranslation()
@@ -20,7 +20,7 @@ export default function AssignmentViewPage() {
   const [translateError, setTranslateError] = useState(null)
 
   const title = stripExtension(filename).replace(/_/g, ' ')
-  const fileUrl = `/api/courses/${courseId}/files/assignments/${encodeURIComponent(filename)}`
+  const fileUrl = `/api/courses/${courseId}/files/lectures/${encodeURIComponent(filename)}`
   const ext = filename.split('.').pop().toLowerCase()
   const isSpanish = i18n.language === 'es'
 
@@ -30,14 +30,13 @@ export default function AssignmentViewPage() {
     })
   }, [courseId])
 
-  // Auto-load translation when in Spanish mode
   useEffect(() => {
     if (!isSpanish) return
     setShowTranslated(true)
     if (translatedText) return
     setTranslating(true)
     setTranslateError(null)
-    axios.get(`/api/courses/${courseId}/assignments/${encodeURIComponent(filename)}/translate?language=es`)
+    axios.get(`/api/courses/${courseId}/lectures/${encodeURIComponent(filename)}/translate?language=es`)
       .then(res => setTranslatedText(res.data.text))
       .catch(() => setTranslateError('Translation failed. Showing original.'))
       .finally(() => setTranslating(false))
@@ -53,18 +52,17 @@ export default function AssignmentViewPage() {
             <span>/</span>
             <button onClick={() => navigate(`/course/${courseId}`)} className="hover:text-gray-600">{course?.name}</button>
             <span>/</span>
-            <button onClick={() => navigate(`/course/${courseId}/assignments`)} className="hover:text-gray-600">{t('assignments.title')}</button>
+            <button onClick={() => navigate(`/course/${courseId}/lectures`)} className="hover:text-gray-600">{t('lectures.title')}</button>
             <span>/</span>
-            <button onClick={() => navigate(`/course/${courseId}/assignments/${encodeURIComponent(filename)}`)} className="hover:text-gray-600">{title}</button>
+            <button onClick={() => navigate(`/course/${courseId}/lectures/${encodeURIComponent(filename)}`)} className="hover:text-gray-600">{title}</button>
             <span>/</span>
-            <span className="text-gray-600 font-medium">{t('assignments.view')}</span>
+            <span className="text-gray-600 font-medium">{t('lectures.viewSlide')}</span>
           </nav>
           <h3 className="font-semibold text-gray-800 text-sm mt-0.5">{title}</h3>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Translation toggle — only for PDFs in Spanish mode */}
-          {isSpanish && ext === 'pdf' && (
+          {isSpanish && (ext === 'pdf' || ext === 'pptx' || ext === 'ppt') && (
             <div className="flex items-center rounded-lg border border-gray-200 overflow-hidden text-xs font-medium">
               <button
                 onClick={() => setShowTranslated(false)}
@@ -96,7 +94,7 @@ export default function AssignmentViewPage() {
 
       {/* File viewer */}
       <div className="flex-1 overflow-hidden bg-gray-100">
-        {isSpanish && ext === 'pdf' && showTranslated ? (
+        {isSpanish && showTranslated && (ext === 'pdf' || ext === 'pptx' || ext === 'ppt') ? (
           translating ? (
             <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-3">
               <svg className="w-6 h-6 animate-spin text-blue-500" viewBox="0 0 24 24" fill="none">

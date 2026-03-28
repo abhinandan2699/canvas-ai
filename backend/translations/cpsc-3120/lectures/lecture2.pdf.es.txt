@@ -1,0 +1,61 @@
+Búsqueda en Anchura (BFS) – Análisis Profundo  
+1. ¿Qué es BFS?  
+La Búsqueda en Anchura (BFS) es un algoritmo de recorrido de grafos que explora nodos nivel por nivel comenzando desde un nodo fuente. Primero visita todos los nodos a una distancia de 1, luego a una distancia de 2, y así sucesivamente.  
+Idea clave: se expande hacia afuera como una ola. BFS garantiza el camino más corto en un grafo no ponderado porque los nodos se exploran en distancia creciente desde la fuente.  
+2. Intuición  
+Piensa en dejar caer una piedra en el agua. Las ondas se propagan hacia afuera de manera uniforme. BFS se comporta de la misma manera: visita primero todos los vecinos inmediatos y luego se expande más.  
+3. Estructura de Datos Utilizada  
+- Cola (FIFO)  
+- Primero descubierto → primero explorado  
+- Mantiene el recorrido en orden de nivel  
+4. Algoritmo (Paso a Paso)  
+- Comenzar desde el nodo fuente S  
+- Marcar S como visitado  
+- Añadir S a la cola  
+- Mientras la cola no esté vacía:  
+  - Eliminar el nodo frontal  
+  - Visitar todos los vecinos no visitados  
+  - Marcar como visitados  
+  - Añadir a la cola  
+5. Pseudocódigo  
+BFS(Grafo, inicio):  
+    crear cola Q  
+    marcar inicio como visitado  
+    Q.enqueue(inicio)  
+
+    mientras Q no esté vacía:  
+        nodo = Q.dequeue()  
+        imprimir(nodo)  
+        para cada vecino del nodo:  
+            si no visitado:  
+                marcar como visitado  
+                Q.enqueue(vecino)  
+6. Ejemplo  
+Grafo: A — B — C, A — D, B — E. Comenzar desde A.  
+- Orden de recorrido: A → B → D → C → E  
+7. Concepto de Árbol BFS  
+- Nivel 0: A  
+- Nivel 1: B, D  
+- Nivel 2: C, E  
+8. Por qué BFS da el camino más corto  
+- Explora nodos en orden de distancia creciente  
+- La primera visita garantiza el camino más corto  
+- Funciona solo para grafos no ponderados  
+9. Complejidad de Tiempo y Espacio  
+- Tiempo: O(V + E)  
+- Espacio: O(V)  
+10. Aplicaciones  
+- Camino más corto en grafos no ponderados  
+- Arañas web  
+- Análisis de redes sociales  
+- Difusión de redes  
+- Problemas de movimientos mínimos  
+
+11. Errores Comunes  
+- No marcar como visitado temprano  
+- Usar una pila en lugar de una cola  
+- Ignorar componentes desconectados  
+12. Variaciones  
+- BFS de múltiples fuentes  
+- BFS bidireccional  
+- BFS 0-1

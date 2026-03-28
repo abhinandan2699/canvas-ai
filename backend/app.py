@@ -36,6 +36,8 @@ PROGRESS_DIR = BASE_DIR / "progress"
 PROGRESS_DIR.mkdir(exist_ok=True)
 TRACKERS_DIR = BASE_DIR / "trackers"
 TRACKERS_DIR.mkdir(exist_ok=True)
+TRANSLATIONS_DIR = BASE_DIR / "translations"
+TRANSLATIONS_DIR.mkdir(exist_ok=True)
 
 # Unified OpenAI client for all features
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -168,8 +170,44 @@ def extract_lecture_context(course_id: str) -> str:
 # ---------------------------------------------------------------------------
 
 @app.get("/api/courses")
-def get_courses():
-    return load_courses()
+def get_courses(language: str = "en"):
+    courses = load_courses()
+    if language == "en":
+        return courses
+
+    cache_path = TRANSLATIONS_DIR / f"courses_{language}.json"
+    if cache_path.exists():
+        try:
+            return json.loads(cache_path.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    lang_name = LANGUAGE_NAMES.get(language, language)
+    fields_to_translate = [{"name": c["name"], "term": c["term"]} for c in courses]
+    prompt = (
+        f"Translate the following course names and term names to {lang_name}. "
+        f"Return a JSON array in the same order with keys 'name' and 'term'. "
+        f"Only translate text — keep codes, numbers, and abbreviations unchanged. "
+        f"Output only valid JSON, nothing else.\n\n"
+        f"{json.dumps(fields_to_translate)}"
+    )
+    resp = openai_client.chat.completions.create(
+        model=OPENAI_MODEL,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=512,
+    )
+    raw = resp.choices[0].message.content.strip()
+    # Strip markdown code fences if present
+    if raw.startswith("```"):
+        raw = re.sub(r"^```[a-z]*\n?", "", raw).rstrip("` \n")
+    translated_fields = json.loads(raw)
+
+    localized = []
+    for course, tf in zip(courses, translated_fields):
+        localized.append({**course, "name": tf.get("name", course["name"]), "term": tf.get("term", course["term"])})
+
+    cache_path.write_text(json.dumps(localized, ensure_ascii=False, indent=2), encoding="utf-8")
+    return localized
 
 
 @app.get("/api/courses/{course_id}/files/{file_type}")
@@ -977,6 +1015,70 @@ def _tracker_path(course_id: str, filename: str) -> Path:
     d.mkdir(exist_ok=True)
     safe_name = filename.replace("/", "_").replace("..", "_")
     return d / f"{safe_name}.json"
+
+
+def _translation_cache_path(course_id: str, file_type: str, filename: str, language: str) -> Path:
+    d = TRANSLATIONS_DIR / course_id / file_type
+    d.mkdir(parents=True, exist_ok=True)
+    safe_name = filename.replace("/", "_").replace("..", "_")
+    return d / f"{safe_name}.{language}.txt"
+
+
+LANGUAGE_NAMES = {"es": "Spanish", "fr": "French", "de": "German", "zh": "Chinese", "ar": "Arabic"}
+
+
+@app.get("/api/courses/{course_id}/{file_type}/{filename}/translate")
+def translate_file(course_id: str, file_type: str, filename: str, language: str = "es"):
+    if file_type not in ("assignments", "lectures"):
+        raise HTTPException(status_code=400, detail="file_type must be 'assignments' or 'lectures'")
+    if language == "en":
+        raise HTTPException(status_code=400, detail="Cannot translate to English")
+
+    cache_path = _translation_cache_path(course_id, file_type, filename, language)
+    if cache_path.exists():
+        return {"text": cache_path.read_text(encoding="utf-8"), "cached": True}
+
+    courses = load_courses()
+    course = next((c for c in courses if c["id"] == course_id), None)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    if file_type == "assignments":
+        raw_text = extract_assignment_text(course, filename)
+    else:
+        raw_text = _extract_file_text(course, filename)
+
+    if not raw_text.strip():
+        raise HTTPException(status_code=422, detail="Could not extract text from file")
+
+    lang_name = LANGUAGE_NAMES.get(language, language)
+
+    # Translate in chunks to stay within token limits
+    chunk_size = 12000
+    chunks = [raw_text[i:i + chunk_size] for i in range(0, len(raw_text), chunk_size)]
+    translated_parts = []
+    for chunk in chunks:
+        resp = openai_client.chat.completions.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        f"You are a professional academic translator. "
+                        f"Translate the following text to {lang_name}. "
+                        f"Preserve the structure, headings, and formatting. "
+                        f"Output only the translated text, nothing else."
+                    ),
+                },
+                {"role": "user", "content": chunk},
+            ],
+            max_tokens=4096,
+        )
+        translated_parts.append(resp.choices[0].message.content.strip())
+
+    translated = "\n\n".join(translated_parts)
+    cache_path.write_text(translated, encoding="utf-8")
+    return {"text": translated, "cached": False}
 
 
 # ---------------------------------------------------------------------------

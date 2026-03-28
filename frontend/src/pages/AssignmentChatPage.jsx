@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import { fetchCourses } from '../api'
 import ReactMarkdown from 'react-markdown'
 import i18n from '../i18n'
 
@@ -286,7 +287,7 @@ export default function AssignmentChatPage() {
   const quickPrompts = [t('assignments.prompt1'), t('assignments.prompt2'), t('assignments.prompt3'), t('assignments.prompt4'), t('assignments.prompt5'), t('assignments.prompt6')]
 
   useEffect(() => {
-    axios.get('/api/courses').then(res => {
+    fetchCourses().then(res => {
       setCourse(res.data.find(c => c.id === courseId) || null)
     })
   }, [courseId])

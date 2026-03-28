@@ -2,7 +2,13 @@
   "appTitle": "Canvas AI",
   "nav": {
     "dashboard": "Panel",
-    "account": "Cuenta"
+    "account": "Cuenta",
+    "settings": "Ajustes"
+  },
+  "settings": {
+    "title": "Ajustes",
+    "language": "Idioma",
+    "languageDesc": "Elige el idioma usado en toda la aplicación"
   },
   "dashboard": {
     "title": "Panel",
@@ -37,7 +43,9 @@
     "learningMapDesc": "Divide la clase en temas para estudiar",
     "scoreHistory": "Historial de notas",
     "scoreHistoryDesc": "Ver intentos anteriores y puntos débiles",
-    "mcqProgress": "Progreso test — Mejor"
+    "mcqProgress": "Progreso test — Mejor",
+    "viewSlide": "Ver diapositiva",
+    "viewSlideDesc": "Lee el archivo completo de la clase — traducido al español en modo español"
   },
   "studybuddy": {
     "title": "StudyBuddy",

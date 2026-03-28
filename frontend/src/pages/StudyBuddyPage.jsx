@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import axios from 'axios'
+import { fetchCourses } from '../api'
 import ReactMarkdown from 'react-markdown'
 import i18n from '../i18n'
 
@@ -195,7 +196,7 @@ export default function StudyBuddyPage() {
   useEffect(() => { activeConvIdRef.current = activeConvId }, [activeConvId])
 
   useEffect(() => {
-    axios.get('/api/courses').then(res => {
+    fetchCourses().then(res => {
       setCourse(res.data.find(c => c.id === courseId) || null)
     })
     axios.get(`/api/courses/${courseId}/conversations`).then(res => {
