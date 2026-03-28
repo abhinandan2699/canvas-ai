@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: canvas-ai-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: VIDEO_SCRIPT_MODEL
+        value: gemini-2.5-flash
+      - key: GEMINI_API_URL
+        value: https://generativelanguage.googleapis.com
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      - key: FRONTEND_ORIGINS
+        sync: false
